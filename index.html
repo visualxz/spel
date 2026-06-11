@@ -41,8 +41,8 @@
   <div id="overlay">
     <div style="font-size:min(16vw,80px)">👦💨💩</div>
     <h1>PRINCE &amp; BAJSMONSTRET</h1>
-    <p>Hjälp Prince hoppa över bajset, akta dig för skunkarna<br>och besegra det STORA BAJSMONSTRET! 🦨💩</p>
-    <p style="font-size:min(4vw,18px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag / HOPPA = hoppa<br>Hoppa PÅ skunkar och monstret för att vinna!</p>
+    <p>Hjälp Prince hoppa över bajset, akta dig för skunkarna<br>och deras pruttar – och besegra det STORA BAJSMONSTRET! 🦨💨💩</p>
+    <p style="font-size:min(4vw,18px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag / HOPPA = hoppa<br>Hoppa PÅ skunkar och monstret – hoppa ÖVER pruttarna!</p>
     <button id="startBtn">▶ STARTA!</button>
   </div>
 </div>
@@ -71,6 +71,7 @@ const sStar = () => { beep(880,0.12,'sine',0.15); setTimeout(()=>beep(1320,0.15,
 const sOops = () => beep(220,0.4,'sawtooth',0.12,-120);
 const sBoop = () => beep(500,0.18,'triangle',0.18,300);
 const sWin  = () => { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'square',0.13),i*160)); };
+const sFart = () => { beep(110,0.3,'sawtooth',0.16,-50); setTimeout(()=>beep(85,0.22,'sawtooth',0.13,-30),120); };
 
 // ---------- input ----------
 const keys = { l:false, r:false, j:false };
@@ -96,7 +97,7 @@ bindBtn(btnL,'l'); bindBtn(btnR,'r'); bindBtn(btnJ,'j');
 
 // ---------- värld ----------
 const LEVEL_END = 5600;
-let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds;
+let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds, farts;
 let score, state, msgTimer, time=0, invuln=0, jumpHeld=false;
 
 function makeWorld() {
@@ -110,7 +111,7 @@ function makeWorld() {
   skunks = [
     {x:1150,min:1050,max:1350},{x:2300,min:2150,max:2550},
     {x:3000,min:2900,max:3200},{x:3900,min:3750,max:4150},{x:4650,min:4550,max:4800}
-  ].map(s=>({...s, y:GROUND-40, w:52, h:40, dir:1, dead:false, deadT:0}));
+  ].map(s=>({...s, y:GROUND-40, w:52, h:40, dir:1, dead:false, deadT:0, fartT:2+Math.random()*4}));
   platforms = [
     {x:780,y:GROUND-110,w:130,h:24},{x:1550,y:GROUND-120,w:140,h:24},
     {x:2650,y:GROUND-115,w:130,h:24},{x:3500,y:GROUND-125,w:150,h:24},
@@ -118,7 +119,7 @@ function makeWorld() {
   ];
   checkpoints = [{x:1900,hit:false},{x:3700,hit:false}];
   boss = { x:5350, y:GROUND-130, w:130, h:130, hp:3, vx:0, vy:0, onGround:true, hurt:0, dir:-1, jumpT:2, dead:false, deadT:0, size:1 };
-  particles = [];
+  particles = []; farts = [];
   clouds = Array.from({length:14},(_,i)=>({x:i*450+Math.random()*200, y:40+Math.random()*120, s:0.7+Math.random()*0.8}));
 }
 
@@ -165,7 +166,7 @@ function drawPrince(px, py) {
   // huvud
   ctx.fillStyle = '#ffd9b3';
   ctx.beginPath(); ctx.arc(0,-60,15,0,7); ctx.fill();
-  // blonda lockar! 
+  // blonda lockar!
   ctx.fillStyle = '#ffe066';
   const curls = [[-13,-70],[-6,-75],[2,-76],[10,-73],[15,-66],[-16,-63],[6,-78],[-2,-79]];
   curls.forEach(([cx,cy])=>{ ctx.beginPath(); ctx.arc(cx,cy,6.5,0,7); ctx.fill(); });
@@ -209,7 +210,7 @@ function drawBoss() {
 function respawn() {
   sOops();
   emit(player.x-cam+player.w/2, player.y+player.h/2, 14, ['#8a5a2b','#b07a3f','#fff']);
-  const fun = ['Oj då! 💨','Usch, bajs! 😝','Hoppsan! Försök igen!','Nästan! Du klarar det! 💪'];
+  const fun = ['Oj då! 💨','Usch! 😝','Hoppsan! Försök igen!','Nästan! Du klarar det! 💪'];
   showMsg(fun[Math.random()*fun.length|0]);
   player.x = respawnX; player.y = GROUND-200; player.vx=0; player.vy=0;
   invuln = 2;
@@ -224,9 +225,9 @@ function update(dt) {
   if (keys.l) { p.vx = -sp; p.face = -1; }
   else if (keys.r) { p.vx = sp; p.face = 1; }
   else p.vx *= 0.7;
-  if (keys.j && p.onGround && !jumpHeld) { p.vy = -13.5; p.onGround = false; sJump(); p.squash = 1.25; }
+  if (keys.j && p.onGround && !jumpHeld) { p.vy = -16; p.onGround = false; sJump(); p.squash = 1.25; }
   jumpHeld = keys.j;
-  p.vy += 38*dt; if (p.vy>16) p.vy=16;
+  p.vy += 38*dt; if (p.vy>17) p.vy=17;
   p.x += p.vx; p.y += p.vy;
   if (p.x < 0) p.x = 0;
   p.squash += (1-p.squash)*0.15;
@@ -266,6 +267,18 @@ function update(dt) {
     if (s.dead) { s.deadT += dt; return; }
     s.x += s.dir * 1.4;
     if (s.x<s.min||s.x>s.max) s.dir*=-1;
+    // PRUTT! Skunken pruttar mot Prince ibland
+    const dist = Math.abs(p.x - s.x);
+    if (dist < 650) {
+      s.fartT -= dt;
+      if (s.fartT <= 0) {
+        s.fartT = 3.5 + Math.random()*3;
+        const fdir = p.x < s.x ? -1 : 1;
+        farts.push({ x: s.x + (fdir>0 ? s.w : -10), y: GROUND-26, w:30, h:24, dir:fdir, life:4, t:0 });
+        emit(s.x-cam+s.w/2, s.y+s.h-6, 6, ['#a8e063','#c7f08a','#8fd14f'], 4, 4);
+        if (dist < 550) sFart();
+      }
+    }
     const hitX = p.x+p.w-8>s.x && p.x+8<s.x+s.w;
     const stomp = hitX && p.vy>2 && p.y+p.h>s.y && p.y+p.h<s.y+26;
     if (stomp) {
@@ -274,6 +287,20 @@ function update(dt) {
       showMsg('Boing! 🦨💨', 900);
     } else if (invuln<=0 && hitX && p.y+p.h>s.y+10 && p.y<s.y+s.h) respawn();
   });
+
+  // pruttmoln glider längs marken
+  farts.forEach(f=>{
+    f.x += f.dir * 2.6;
+    f.t += dt; f.life -= dt;
+    if (invuln<=0 && f.life>0 &&
+        p.x+p.w-10>f.x && p.x+10<f.x+f.w &&
+        p.y+p.h>GROUND-f.h-4) {
+      f.life = 0;
+      respawn();
+      showMsg('Usch, en prutt! 💨🤢');
+    }
+  });
+  farts = farts.filter(f=>f.life>0);
 
   // boss
   if (!boss.dead) {
@@ -369,6 +396,20 @@ function draw() {
   // bajshögar
   ctx.font='44px serif'; ctx.textAlign='left';
   poops.forEach(o=>{ const x=o.x-cam; if(x>-60&&x<W+60) ctx.fillText('💩', x, o.y+o.h); });
+  // pruttmoln
+  farts.forEach(f=>{
+    const x = f.x-cam; if (x<-60||x>W+60) return;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, f.life);
+    // grön stinkig glöd
+    ctx.fillStyle = 'rgba(168,224,99,0.4)';
+    ctx.beginPath(); ctx.arc(x+f.w/2, GROUND-14, 18+Math.sin(f.t*10)*3, 0, 7); ctx.fill();
+    ctx.font='34px serif'; ctx.textAlign='center';
+    ctx.translate(x+f.w/2, GROUND-2+Math.sin(f.t*12)*2);
+    ctx.scale(f.dir,1);
+    ctx.fillText('💨', 0, 0);
+    ctx.restore();
+  });
   // skunkar
   skunks.forEach(s=>{
     const x = s.x-cam; if (x<-80||x>W+80) return;
@@ -429,7 +470,7 @@ startBtn.addEventListener('click', () => {
   overlay.classList.add('hidden');
   btnL.classList.remove('hidden'); btnR.classList.remove('hidden'); btnJ.classList.remove('hidden');
   makeWorld(); respawnX = 80; state = 'play';
-  beep(523,0.15,'square',0.1); 
+  beep(523,0.15,'square',0.1);
 });
 
 state = 'menu';
