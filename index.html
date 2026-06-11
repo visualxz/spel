@@ -3,23 +3,32 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>PRINCE & Bajsmonstret</title>
+<title>PRINCE & NATHAN vs BAJSMONSTRET</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; overflow:hidden; background:#7ec8ff; font-family:'Comic Sans MS','Chalkboard SE',sans-serif; touch-action:none; }
   #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
-  canvas { display:block; width:100%; height:100%; object-fit:contain; }
+  canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
   .btn { position:absolute; bottom:18px; width:84px; height:84px; border-radius:50%; border:4px solid #fff;
     background:rgba(255,255,255,.35); font-size:38px; display:flex; align-items:center; justify-content:center;
     user-select:none; color:#fff; text-shadow:0 2px 4px rgba(0,0,0,.3); z-index:5; }
   .btn:active { background:rgba(255,255,255,.65); transform:scale(.93); }
   #left { left:18px; } #right { left:118px; }
   #jump { right:18px; width:104px; height:104px; font-size:26px; background:rgba(255,90,90,.55); font-weight:bold; }
+  #musicBtn { position:absolute; top:10px; right:14px; width:54px; height:54px; border-radius:50%; border:3px solid #fff;
+    background:rgba(255,255,255,.4); font-size:26px; display:flex; align-items:center; justify-content:center;
+    user-select:none; cursor:pointer; z-index:7; }
+  #musicBtn:active { transform:scale(.92); }
   #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
-    background:linear-gradient(180deg,#7ec8ff,#b6f0ff); z-index:10; text-align:center; padding:20px; }
-  #overlay h1 { font-size:min(11vw,58px); color:#fff; text-shadow:3px 3px 0 #ff8a3d, 6px 6px 0 rgba(0,0,0,.15); margin-bottom:8px; }
-  #overlay p { font-size:min(5vw,24px); color:#2d5a8a; margin:6px 0 18px; }
-  #startBtn { font-size:min(7vw,34px); padding:16px 44px; border-radius:50px; border:none; cursor:pointer;
+    background:linear-gradient(180deg,#7ec8ff,#b6f0ff); z-index:10; text-align:center; padding:16px; overflow:auto; }
+  #overlay h1 { font-size:min(8vw,46px); color:#fff; text-shadow:3px 3px 0 #ff8a3d, 6px 6px 0 rgba(0,0,0,.15); margin-bottom:4px; }
+  #overlay p { font-size:min(4.2vw,20px); color:#2d5a8a; margin:4px 0 10px; }
+  #chars { display:flex; gap:14px; margin:10px 0 16px; flex-wrap:wrap; justify-content:center; }
+  .char { width:140px; padding:12px 8px; border-radius:18px; border:4px solid #fff; cursor:pointer;
+    background:rgba(255,255,255,.65); font-family:inherit; font-size:17px; font-weight:bold; color:#2d5a8a; }
+  .char canvas { display:block; margin:0 auto 6px; }
+  .char.sel { border-color:#ffb53d; background:#fff3c7; transform:scale(1.07); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+  #startBtn { font-size:min(7vw,32px); padding:14px 42px; border-radius:50px; border:none; cursor:pointer;
     background:linear-gradient(180deg,#ffd83d,#ffb53d); color:#7a4a00; font-weight:bold; font-family:inherit;
     box-shadow:0 6px 0 #d98e1e; animation:bounce 1s infinite; }
   #startBtn:active { transform:translateY(4px); box-shadow:0 2px 0 #d98e1e; }
@@ -35,30 +44,164 @@
   <canvas id="game" width="900" height="500"></canvas>
   <div id="hud"></div>
   <div id="msg"></div>
+  <div id="musicBtn" class="hidden">🎵</div>
   <div id="left" class="btn hidden">◀</div>
   <div id="right" class="btn hidden">▶</div>
   <div id="jump" class="btn hidden">HOPPA!</div>
   <div id="overlay">
-    <div style="font-size:min(16vw,80px)">👦💨💩</div>
-    <h1>PRINCE &amp; BAJSMONSTRET</h1>
-    <p>Hjälp Prince hoppa över bajset, akta dig för skunkarna<br>och deras pruttar – och besegra det STORA BAJSMONSTRET! 🦨💨💩</p>
-    <p style="font-size:min(4vw,18px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag / HOPPA = hoppa<br>Hoppa PÅ skunkar och monstret – hoppa ÖVER pruttarna!</p>
+    <h1>PRINCE &amp; NATHAN<br>vs BAJSMONSTRET</h1>
+    <p>Välj din hjälte! Hoppa över bajset och pruttarna,<br>hoppa PÅ skunkarna – och besegra det STORA BAJSMONSTRET! 💩</p>
+    <div id="chars">
+      <button class="char sel" data-c="cap"><canvas width="80" height="100"></canvas>PRINCE</button>
+      <button class="char" data-c="nathan"><canvas width="80" height="100"></canvas>NATHAN</button>
+    </div>
+    <p style="font-size:min(3.8vw,16px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag / HOPPA = hoppa</p>
     <button id="startBtn">▶ STARTA!</button>
   </div>
 </div>
 <script>
 (() => {
+// roundRect-stöd för äldre webbläsare
+if (!CanvasRenderingContext2D.prototype.roundRect) {
+  CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
+    if (typeof r === 'number') r = Math.min(r, w/2, h/2);
+    this.moveTo(x+r,y); this.arcTo(x+w,y,x+w,y+h,r); this.arcTo(x+w,y+h,x,y+h,r);
+    this.arcTo(x,y+h,x,y,r); this.arcTo(x,y,x+w,y,r); this.closePath(); return this;
+  };
+}
+
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const W = 900, H = 500, GROUND = 430;
 const overlay = document.getElementById('overlay'), startBtn = document.getElementById('startBtn');
 const hud = document.getElementById('hud'), msgEl = document.getElementById('msg');
 const btnL = document.getElementById('left'), btnR = document.getElementById('right'), btnJ = document.getElementById('jump');
+const musicBtn = document.getElementById('musicBtn');
+
+// ---------- karaktärer ----------
+const CHARS = {
+  cap:    { name:'PRINCE', skin:'#eebd8a', shirt:'#3fbf5a', arms:'#3fbf5a', pants:'#3a6bd6', shoes:'#e0342f', hair:'blond', cap:true,  spider:false },
+  nathan: { name:'NATHAN', skin:'#5c3317', shirt:'#e0342f', arms:'#e0342f', pants:'#2456c4', shoes:'#1a1a1a', hair:'black', cap:false, spider:true }
+};
+let heroKey = 'cap';
+
+// ---------- rita figuren (används i spelet OCH i valrutorna) ----------
+function renderFigure(g, c, run, arm) {
+  run = run||0; arm = arm||0;
+  // ben
+  g.strokeStyle = c.pants; g.lineWidth = 9; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(-7,-26); g.lineTo(-9+run*0.6,-2); g.stroke();
+  g.beginPath(); g.moveTo(7,-26); g.lineTo(9-run*0.6,-2); g.stroke();
+  // skor
+  g.fillStyle = c.shoes;
+  g.beginPath(); g.ellipse(-9+run*0.6,-2,8,5,0,0,7); g.fill();
+  g.beginPath(); g.ellipse(9-run*0.6,-2,8,5,0,0,7); g.fill();
+  // kropp
+  g.fillStyle = c.shirt;
+  g.beginPath(); g.roundRect(-14,-48,28,26,8); g.fill();
+  if (c.spider) {
+    // spindelnät på tröjan
+    g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.2;
+    g.beginPath(); g.moveTo(0,-48); g.lineTo(0,-22); g.stroke();
+    g.beginPath(); g.moveTo(-14,-40); g.lineTo(14,-40); g.stroke();
+    g.beginPath(); g.moveTo(-14,-31); g.lineTo(14,-31); g.stroke();
+    g.beginPath(); g.moveTo(-12,-48); g.lineTo(10,-22); g.stroke();
+    g.beginPath(); g.moveTo(12,-48); g.lineTo(-10,-22); g.stroke();
+    // spindel på bröstet
+    g.fillStyle = '#0d0d0d';
+    g.beginPath(); g.ellipse(0,-34,4,6,0,0,7); g.fill();
+    g.beginPath(); g.arc(0,-41,2.8,0,7); g.fill();
+    g.strokeStyle = '#0d0d0d'; g.lineWidth = 1.4;
+    [[-4,-38,-10,-43],[4,-38,10,-43],[-4,-35,-11,-35],[4,-35,11,-35],
+     [-4,-31,-10,-27],[4,-31,10,-27]].forEach(seg=>{
+      g.beginPath(); g.moveTo(seg[0],seg[1]); g.lineTo(seg[2],seg[3]); g.stroke();
+    });
+  } else {
+    // krona på tröjan
+    g.fillStyle = '#ffd83d';
+    g.beginPath();
+    g.moveTo(-7,-30); g.lineTo(-7,-38); g.lineTo(-3.5,-33); g.lineTo(0,-39);
+    g.lineTo(3.5,-33); g.lineTo(7,-38); g.lineTo(7,-30); g.closePath(); g.fill();
+  }
+  // armar
+  g.strokeStyle = c.arms; g.lineWidth = 8; g.lineCap = 'round';
+  g.beginPath(); g.moveTo(-13,-44); g.lineTo(-20-arm*0.3,-32+arm*0.4); g.stroke();
+  g.beginPath(); g.moveTo(13,-44); g.lineTo(20+arm*0.3,-32-arm*0.4); g.stroke();
+  // huvud
+  g.fillStyle = c.skin;
+  g.beginPath(); g.arc(0,-60,15,0,7); g.fill();
+  // hår
+  if (c.hair === 'blond') {
+    g.fillStyle = '#ffe066';
+    if (c.cap) {
+      // lockar under kepsen
+      [[-15,-62],[-13,-67],[15,-62],[13,-67],[-16,-58]].forEach(cu=>{
+        g.beginPath(); g.arc(cu[0],cu[1],5.5,0,7); g.fill();
+      });
+      // röd keps
+      g.fillStyle = '#e0342f';
+      g.beginPath(); g.arc(0,-66,15,Math.PI,0); g.fill();
+      g.beginPath(); g.roundRect(6,-70,18,6,3); g.fill();
+      g.fillStyle = '#b8241f';
+      g.beginPath(); g.roundRect(-15,-68,30,4,2); g.fill();
+    } else {
+      [[-13,-70],[-6,-75],[2,-76],[10,-73],[15,-66],[-16,-63],[6,-78],[-2,-79]].forEach(cu=>{
+        g.beginPath(); g.arc(cu[0],cu[1],6.5,0,7); g.fill();
+      });
+    }
+  } else {
+    // svart hår (Nathan)
+    g.fillStyle = '#1c1008';
+    g.beginPath(); g.arc(0,-64,15,Math.PI,0); g.fill();
+    g.beginPath(); g.ellipse(0,-68,14,8,0,0,7); g.fill();
+    g.beginPath(); g.arc(-14,-60,4,0,7); g.fill();
+    g.beginPath(); g.arc(14,-60,4,0,7); g.fill();
+  }
+  // ansikte
+  g.fillStyle = '#222';
+  g.beginPath(); g.arc(5,-61,2.2,0,7); g.fill();
+  g.beginPath(); g.arc(12,-61,2.2,0,7); g.fill();
+  g.strokeStyle = '#c0392b'; g.lineWidth = 2;
+  g.beginPath(); g.arc(8,-55,4,0.2,Math.PI-0.2); g.stroke();
+}
+
+// rita gubbarna i valrutorna
+function drawPreviews() {
+  document.querySelectorAll('.char').forEach(b=>{
+    const pc = b.querySelector('canvas');
+    if (!pc) return;
+    try {
+      const g = pc.getContext('2d');
+      g.clearRect(0,0,pc.width,pc.height);
+      g.save();
+      g.translate(pc.width/2, pc.height-4);
+      renderFigure(g, CHARS[b.dataset.c], 0, 0);
+      g.restore();
+    } catch(e) { console.error('preview', e); }
+  });
+}
+drawPreviews();
+window.addEventListener('load', drawPreviews);
+
+document.querySelectorAll('.char').forEach(b=>{
+  b.addEventListener('click', ()=>{
+    document.querySelectorAll('.char').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel');
+    heroKey = b.dataset.c;
+    beep(660,0.1,'square',0.1);
+  });
+});
 
 // ---------- ljud ----------
 let AC = null;
-function beep(freq, dur, type='sine', vol=0.15, slide=0) {
+function ensureAC() {
+  if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
+  if (AC && AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function beep(freq, dur, type, vol, slide) {
+  type = type||'sine'; vol = vol===undefined?0.15:vol; slide = slide||0;
   try {
-    if (!AC) AC = new (window.AudioContext||window.webkitAudioContext)();
+    if (!ensureAC()) return;
     const o = AC.createOscillator(), g = AC.createGain();
     o.type = type; o.frequency.value = freq;
     if (slide) o.frequency.linearRampToValueAtTime(freq+slide, AC.currentTime+dur);
@@ -72,6 +215,85 @@ const sOops = () => beep(220,0.4,'sawtooth',0.12,-120);
 const sBoop = () => beep(500,0.18,'triangle',0.18,300);
 const sWin  = () => { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'square',0.13),i*160)); };
 const sFart = () => { beep(110,0.3,'sawtooth',0.16,-50); setTimeout(()=>beep(85,0.22,'sawtooth',0.13,-30),120); };
+
+// ---------- AFROBEAT-MUSIK 🎵 ----------
+let musicOn = true, musicTimer = null, musicGain = null, nextNote = 0, mStep = 0;
+const TEMPO = 106, STEP_T = 60/TEMPO/4; // sextondelar
+
+function mTone(freq, t, dur, type, vol, dest) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, t);
+  g.gain.setValueAtTime(0, t);
+  g.gain.linearRampToValueAtTime(vol, t+0.008);
+  g.gain.exponentialRampToValueAtTime(0.001, t+dur);
+  o.connect(g); g.connect(dest);
+  o.start(t); o.stop(t+dur+0.05);
+}
+function mKick(t) {
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type='sine';
+  o.frequency.setValueAtTime(140, t);
+  o.frequency.exponentialRampToValueAtTime(45, t+0.1);
+  g.gain.setValueAtTime(0.9, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t+0.16);
+  o.connect(g); g.connect(musicGain);
+  o.start(t); o.stop(t+0.2);
+}
+function mShaker(t, vol) {
+  const len = 0.05, buf = AC.createBuffer(1, AC.sampleRate*len, AC.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1-i/d.length);
+  const src = AC.createBufferSource(); src.buffer = buf;
+  const f = AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=6000;
+  const g = AC.createGain(); g.gain.value = vol;
+  src.connect(f); f.connect(g); g.connect(musicGain);
+  src.start(t);
+}
+function mRim(t) {
+  mTone(1750, t, 0.045, 'square', 0.18, musicGain);
+}
+// A-moll-pentatonisk afrogroove, 2 takter (32 steg)
+const BASS = {0:55,3:55,6:65.4,10:82.4,14:49,16:55,19:55,22:73.4,26:82.4,30:65.4};
+const MEL  = {2:329.6,5:392,8:440,13:392,18:329.6,21:293.7,24:261.6,29:220};
+const KICK = [0,6,10];
+const RIM  = [4,12,14];
+
+function scheduleStep(s, t) {
+  const bs = s % 16;
+  if (KICK.indexOf(bs) > -1) mKick(t);
+  if (s % 2 === 1) mShaker(t, bs % 4 === 3 ? 0.3 : 0.15);
+  if (RIM.indexOf(bs) > -1 && (s<16 ? bs!==14 : true)) mRim(t);
+  if (BASS[s] !== undefined) mTone(BASS[s], t, 0.22, 'triangle', 0.65, musicGain);
+  if (MEL[s]  !== undefined) {
+    mTone(MEL[s], t, 0.3, 'sine', 0.3, musicGain);
+    mTone(MEL[s]*2, t, 0.12, 'triangle', 0.1, musicGain); // marimba-glans
+  }
+}
+function musicTick() {
+  if (!AC || !musicGain) return;
+  while (nextNote < AC.currentTime + 0.15) {
+    scheduleStep(mStep % 32, nextNote);
+    nextNote += STEP_T;
+    mStep++;
+  }
+}
+function startMusic() {
+  if (!ensureAC() || musicTimer) return;
+  musicGain = AC.createGain();
+  musicGain.gain.value = 0.07; // lagom lågt i bakgrunden
+  musicGain.connect(AC.destination);
+  nextNote = AC.currentTime + 0.05; mStep = 0;
+  musicTimer = setInterval(musicTick, 40);
+}
+function stopMusic() {
+  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
+  if (musicGain) { try { musicGain.disconnect(); } catch(e){} musicGain = null; }
+}
+musicBtn.addEventListener('click', () => {
+  musicOn = !musicOn;
+  musicBtn.textContent = musicOn ? '🎵' : '🔇';
+  if (musicOn) startMusic(); else stopMusic();
+});
 
 // ---------- input ----------
 const keys = { l:false, r:false, j:false };
@@ -124,58 +346,30 @@ function makeWorld() {
 }
 
 let respawnX = 80;
-function showMsg(t, ms=1400) {
+function showMsg(t, ms) {
+  ms = ms||1400;
   msgEl.textContent = t; msgEl.style.opacity = 1;
   clearTimeout(msgTimer);
   msgTimer = setTimeout(()=>msgEl.style.opacity=0, ms);
 }
-function emit(x,y,n,colors,spread=6,up=8) {
+function emit(x,y,n,colors,spread,up) {
+  spread = spread||6; up = up||8;
   for (let i=0;i<n;i++) particles.push({
     x,y, vx:(Math.random()-0.5)*spread, vy:-Math.random()*up-2,
     c:colors[Math.random()*colors.length|0], r:3+Math.random()*5, life:1
   });
 }
 
-// ---------- rita Prince ----------
-function drawPrince(px, py) {
-  const p = player;
+function drawHero(px, py) {
+  const p = player, c = CHARS[heroKey];
   ctx.save();
   ctx.translate(px+p.w/2, py+p.h);
   ctx.scale(p.face, 1);
   ctx.scale(1/Math.sqrt(p.squash), p.squash);
   if (invuln>0 && Math.floor(time*12)%2===0) ctx.globalAlpha = 0.4;
   const run = p.onGround && Math.abs(p.vx)>0.5 ? Math.sin(time*16)*8 : 0;
-  // ben
-  ctx.strokeStyle = '#3a6bd6'; ctx.lineWidth = 9; ctx.lineCap = 'round';
-  ctx.beginPath(); ctx.moveTo(-7,-26); ctx.lineTo(-9+run*0.6,-2); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(7,-26); ctx.lineTo(9-run*0.6,-2); ctx.stroke();
-  // skor
-  ctx.fillStyle = '#e0342f';
-  ctx.beginPath(); ctx.ellipse(-9+run*0.6,-2,8,5,0,0,7); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(9-run*0.6,-2,8,5,0,0,7); ctx.fill();
-  // kropp (grön tröja med krona)
-  ctx.fillStyle = '#3fbf5a';
-  ctx.beginPath(); ctx.roundRect(-14,-48,28,26,8); ctx.fill();
-  ctx.fillStyle = '#ffd83d'; ctx.font='bold 13px sans-serif'; ctx.textAlign='center';
-  ctx.fillText('👑', 0, -30);
-  // armar
-  ctx.strokeStyle = '#3fbf5a'; ctx.lineWidth = 8;
   const arm = p.onGround ? run*0.5 : -10;
-  ctx.beginPath(); ctx.moveTo(-13,-44); ctx.lineTo(-20-arm*0.3,-32+arm*0.4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(13,-44); ctx.lineTo(20+arm*0.3,-32-arm*0.4); ctx.stroke();
-  // huvud
-  ctx.fillStyle = '#ffd9b3';
-  ctx.beginPath(); ctx.arc(0,-60,15,0,7); ctx.fill();
-  // blonda lockar!
-  ctx.fillStyle = '#ffe066';
-  const curls = [[-13,-70],[-6,-75],[2,-76],[10,-73],[15,-66],[-16,-63],[6,-78],[-2,-79]];
-  curls.forEach(([cx,cy])=>{ ctx.beginPath(); ctx.arc(cx,cy,6.5,0,7); ctx.fill(); });
-  // ansikte
-  ctx.fillStyle = '#333';
-  ctx.beginPath(); ctx.arc(5,-61,2.2,0,7); ctx.fill();
-  ctx.beginPath(); ctx.arc(12,-61,2.2,0,7); ctx.fill();
-  ctx.strokeStyle = '#c0392b'; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.arc(8,-55,4,0.2,Math.PI-0.2); ctx.stroke();
+  renderFigure(ctx, c, run, arm);
   ctx.restore();
 }
 
@@ -189,15 +383,12 @@ function drawBoss() {
   if (boss.dead) sz *= Math.max(0, 1-boss.deadT/2);
   ctx.scale(sz, sz);
   const wob = Math.sin(time*4)*3;
-  // stor bajs-emoji
   ctx.font = '130px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
   ctx.fillText('💩', 0, 10+wob*0.3);
-  // arga ögonbryn
   ctx.strokeStyle = '#4a2c12'; ctx.lineWidth = 7; ctx.lineCap='round';
   ctx.beginPath(); ctx.moveTo(-42,-78+wob); ctx.lineTo(-16,-66+wob); ctx.stroke();
   ctx.beginPath(); ctx.moveTo(42,-78+wob); ctx.lineTo(16,-66+wob); ctx.stroke();
   ctx.restore();
-  // hp-hjärtan
   if (!boss.dead) {
     ctx.font = '26px serif'; ctx.textAlign='center';
     for (let i=0;i<boss.hp;i++) ctx.fillText('💜', bx+boss.w/2-32+i*32, by-20);
@@ -212,7 +403,9 @@ function respawn() {
   emit(player.x-cam+player.w/2, player.y+player.h/2, 14, ['#8a5a2b','#b07a3f','#fff']);
   const fun = ['Oj då! 💨','Usch! 😝','Hoppsan! Försök igen!','Nästan! Du klarar det! 💪'];
   showMsg(fun[Math.random()*fun.length|0]);
-  player.x = respawnX; player.y = GROUND-200; player.vx=0; player.vy=0;
+  // backa bara en liten bit – inte hela vägen tillbaka
+  player.x = Math.max(40, player.x - 150);
+  player.y = GROUND-200; player.vx=0; player.vy=0;
   invuln = 2;
 }
 
@@ -220,19 +413,17 @@ function update(dt) {
   time += dt;
   if (invuln>0) invuln -= dt;
   const p = player;
-  // rörelse
   const sp = 4.6;
   if (keys.l) { p.vx = -sp; p.face = -1; }
   else if (keys.r) { p.vx = sp; p.face = 1; }
   else p.vx *= 0.7;
-  if (keys.j && p.onGround && !jumpHeld) { p.vy = -16; p.onGround = false; sJump(); p.squash = 1.25; }
+  if (keys.j && p.onGround && !jumpHeld) { p.vy = -17.5; p.onGround = false; sJump(); p.squash = 1.25; }
   jumpHeld = keys.j;
-  p.vy += 38*dt; if (p.vy>17) p.vy=17;
+  p.vy += 38*dt; if (p.vy>18) p.vy=18;
   p.x += p.vx; p.y += p.vy;
   if (p.x < 0) p.x = 0;
   p.squash += (1-p.squash)*0.15;
 
-  // mark & plattformar
   p.onGround = false;
   if (p.y + p.h >= GROUND) { p.y = GROUND-p.h; if (p.vy>6) p.squash=0.75; p.vy=0; p.onGround=true; }
   platforms.forEach(pl=>{
@@ -242,7 +433,6 @@ function update(dt) {
     }
   });
 
-  // stjärnor
   stars.forEach(s=>{
     s.t += dt*3;
     if (!s.got && Math.abs(p.x+p.w/2-s.x)<34 && Math.abs(p.y+p.h/2-(s.y+Math.sin(s.t)*8))<44) {
@@ -252,22 +442,18 @@ function update(dt) {
     }
   });
 
-  // checkpoints
   checkpoints.forEach(c=>{
     if (!c.hit && p.x > c.x) { c.hit = true; respawnX = c.x; showMsg('Checkpoint! 🚩',1000); sBoop(); }
   });
 
-  // bajshögar
   if (invuln<=0) poops.forEach(o=>{
     if (p.x+p.w-8>o.x && p.x+8<o.x+o.w && p.y+p.h>o.y+8) respawn();
   });
 
-  // skunkar
   skunks.forEach(s=>{
     if (s.dead) { s.deadT += dt; return; }
     s.x += s.dir * 1.4;
     if (s.x<s.min||s.x>s.max) s.dir*=-1;
-    // PRUTT! Skunken pruttar mot Prince ibland
     const dist = Math.abs(p.x - s.x);
     if (dist < 650) {
       s.fartT -= dt;
@@ -288,7 +474,6 @@ function update(dt) {
     } else if (invuln<=0 && hitX && p.y+p.h>s.y+10 && p.y<s.y+s.h) respawn();
   });
 
-  // pruttmoln glider längs marken
   farts.forEach(f=>{
     f.x += f.dir * 2.6;
     f.t += dt; f.life -= dt;
@@ -302,7 +487,6 @@ function update(dt) {
   });
   farts = farts.filter(f=>f.life>0);
 
-  // boss
   if (!boss.dead) {
     boss.jumpT -= dt;
     const near = p.x > boss.x-450;
@@ -339,11 +523,9 @@ function update(dt) {
     }
   }
 
-  // partiklar
   particles.forEach(pa=>{ pa.x+=pa.vx; pa.y+=pa.vy; pa.vy+=0.35; pa.life-=dt*1.2; });
   particles = particles.filter(pa=>pa.life>0);
 
-  // kamera
   cam += ((p.x - 280) - cam)*0.1;
   if (cam<0) cam=0;
   if (cam>LEVEL_END-W+100) cam=LEVEL_END-W+100;
@@ -353,55 +535,43 @@ function update(dt) {
 
 // ---------- rendering ----------
 function draw() {
-  // himmel
   const g = ctx.createLinearGradient(0,0,0,H);
   g.addColorStop(0,'#7ec8ff'); g.addColorStop(1,'#c8f0ff');
   ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-  // sol
   ctx.font='60px serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
   ctx.fillText('🌞', 790, 80);
-  // moln
   ctx.font='50px serif';
   clouds.forEach(c=>{ const x=(c.x-cam*0.4)%(LEVEL_END); if(x>-80&&x<W+80) { ctx.save(); ctx.translate(x,c.y); ctx.scale(c.s,c.s); ctx.fillText('☁️',0,0); ctx.restore(); }});
-  // kullar
   ctx.fillStyle = '#a8e063';
   for (let i=0;i<8;i++) {
     const hx = (i*900 - cam*0.6)%(LEVEL_END);
     ctx.beginPath(); ctx.arc(hx, GROUND+60, 160, Math.PI, 0); ctx.fill();
   }
-  // mark
   ctx.fillStyle = '#5fc24e'; ctx.fillRect(0, GROUND, W, H-GROUND);
   ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0, GROUND+22, W, H-GROUND);
-  // blommor
   ctx.font='22px serif';
   for (let i=0;i<40;i++) {
     const fx = i*150 - cam; if (fx>-30&&fx<W+30) ctx.fillText(['🌸','🌼','🌷'][i%3], fx, GROUND+18);
   }
-  // plattformar
   platforms.forEach(pl=>{
     const x = pl.x-cam; if (x<-200||x>W+200) return;
     ctx.fillStyle = '#c98a3e'; ctx.beginPath(); ctx.roundRect(x,pl.y,pl.w,pl.h,8); ctx.fill();
     ctx.fillStyle = '#5fc24e'; ctx.beginPath(); ctx.roundRect(x,pl.y,pl.w,10,6); ctx.fill();
   });
-  // checkpoints
   ctx.font='42px serif';
   checkpoints.forEach(c=>{ const x=c.x-cam; if(x>-50&&x<W+50) ctx.fillText(c.hit?'🚩':'⚐', x, GROUND-6); });
-  // stjärnor
   stars.forEach(s=>{
     if (s.got) return;
     const x = s.x-cam; if (x<-50||x>W+50) return;
     ctx.save(); ctx.translate(x, s.y+Math.sin(s.t)*8);
     ctx.font='34px serif'; ctx.textAlign='center'; ctx.fillText('⭐',0,12); ctx.restore();
   });
-  // bajshögar
   ctx.font='44px serif'; ctx.textAlign='left';
   poops.forEach(o=>{ const x=o.x-cam; if(x>-60&&x<W+60) ctx.fillText('💩', x, o.y+o.h); });
-  // pruttmoln
   farts.forEach(f=>{
     const x = f.x-cam; if (x<-60||x>W+60) return;
     ctx.save();
     ctx.globalAlpha = Math.min(1, f.life);
-    // grön stinkig glöd
     ctx.fillStyle = 'rgba(168,224,99,0.4)';
     ctx.beginPath(); ctx.arc(x+f.w/2, GROUND-14, 18+Math.sin(f.t*10)*3, 0, 7); ctx.fill();
     ctx.font='34px serif'; ctx.textAlign='center';
@@ -410,7 +580,6 @@ function draw() {
     ctx.fillText('💨', 0, 0);
     ctx.restore();
   });
-  // skunkar
   skunks.forEach(s=>{
     const x = s.x-cam; if (x<-80||x>W+80) return;
     if (s.dead) {
@@ -423,16 +592,13 @@ function draw() {
     ctx.fillText('🦨', 0, Math.sin(time*10+s.x)*2);
     ctx.restore();
   });
-  // boss + mål
   drawBoss();
   if (boss.dead && boss.deadT>1.5) {
     ctx.font='90px serif'; ctx.textAlign='center';
     ctx.fillText('🚽', boss.x-cam+boss.w/2, GROUND);
     if (boss.deadT<2.5) ctx.fillText('💨', boss.x-cam+boss.w/2, GROUND-80);
   }
-  // Prince
-  drawPrince(player.x-cam, player.y);
-  // partiklar
+  drawHero(player.x-cam, player.y);
   particles.forEach(pa=>{
     ctx.globalAlpha = Math.max(0,pa.life);
     ctx.fillStyle = pa.c;
@@ -440,19 +606,23 @@ function draw() {
   });
   ctx.globalAlpha = 1;
 
-  // vinst-skärm
   if (state==='won') {
     ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(0,0,W,H);
     ctx.textAlign='center';
-    ctx.font='70px serif'; ctx.fillText('🎉👑🎉', W/2, 150);
+    ctx.font='70px serif'; ctx.fillText(CHARS[heroKey].spider ? '🎉🕷️🎉' : '🎉🧢🎉', W/2, 150);
     ctx.fillStyle='#ff5a2b'; ctx.font='bold 56px Comic Sans MS, sans-serif';
-    ctx.fillText('PRINCE VANN!', W/2, 230);
+    ctx.fillText(CHARS[heroKey].name + ' VANN!', W/2, 230);
     ctx.fillStyle='#2d5a8a'; ctx.font='bold 30px Comic Sans MS, sans-serif';
     ctx.fillText('Bajsmonstret spolades ner i toaletten! 🚽💨', W/2, 285);
     ctx.fillText('⭐ Du samlade ' + score + ' stjärnor!', W/2, 330);
     ctx.fillStyle='#3fbf5a'; ctx.font='bold 26px Comic Sans MS, sans-serif';
     ctx.fillText('Tryck HOPPA eller mellanslag för att spela igen!', W/2, 395);
-    if (keys.j) { makeWorld(); respawnX=80; state='play'; }
+    if (keys.j) {
+      makeWorld(); respawnX=80; state='menu';
+      overlay.classList.remove('hidden');
+      btnL.classList.add('hidden'); btnR.classList.add('hidden'); btnJ.classList.add('hidden');
+      drawPreviews();
+    }
   }
 }
 
@@ -469,8 +639,10 @@ function loop(t) {
 startBtn.addEventListener('click', () => {
   overlay.classList.add('hidden');
   btnL.classList.remove('hidden'); btnR.classList.remove('hidden'); btnJ.classList.remove('hidden');
+  musicBtn.classList.remove('hidden');
   makeWorld(); respawnX = 80; state = 'play';
   beep(523,0.15,'square',0.1);
+  if (musicOn) startMusic();
 });
 
 state = 'menu';
