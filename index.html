@@ -15,6 +15,7 @@
   .btn:active { background:rgba(255,255,255,.65); transform:scale(.93); }
   #left { left:18px; } #right { left:118px; }
   #jump { right:18px; width:104px; height:104px; font-size:26px; background:rgba(255,90,90,.55); font-weight:bold; }
+  #shoot { right:134px; bottom:30px; width:84px; height:84px; font-size:34px; background:rgba(90,150,255,.55); }
   #musicBtn { position:absolute; top:10px; right:14px; width:54px; height:54px; border-radius:50%; border:3px solid #fff;
     background:rgba(255,255,255,.4); font-size:26px; display:flex; align-items:center; justify-content:center;
     user-select:none; cursor:pointer; z-index:7; }
@@ -48,6 +49,7 @@
   <div id="left" class="btn hidden">◀</div>
   <div id="right" class="btn hidden">▶</div>
   <div id="jump" class="btn hidden">HOPPA!</div>
+  <div id="shoot" class="btn hidden">🥏</div>
   <div id="overlay">
     <h1>PRINCE &amp; NATHAN<br>vs BAJSMONSTRET</h1>
     <p>Välj din hjälte! Hoppa över bajset och pruttarna,<br>hoppa PÅ skunkarna – och besegra det STORA BAJSMONSTRET! 💩</p>
@@ -55,7 +57,7 @@
       <button class="char sel" data-c="cap"><canvas width="80" height="100"></canvas>PRINCE</button>
       <button class="char" data-c="nathan"><canvas width="80" height="100"></canvas>NATHAN</button>
     </div>
-    <p style="font-size:min(3.8vw,16px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag / HOPPA = hoppa</p>
+    <p style="font-size:min(3.8vw,16px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag = hoppa &nbsp; | &nbsp; F / 🥏 = kasta frisbee</p>
     <button id="startBtn">▶ STARTA!</button>
   </div>
 </div>
@@ -75,6 +77,7 @@ const W = 900, H = 500, GROUND = 430;
 const overlay = document.getElementById('overlay'), startBtn = document.getElementById('startBtn');
 const hud = document.getElementById('hud'), msgEl = document.getElementById('msg');
 const btnL = document.getElementById('left'), btnR = document.getElementById('right'), btnJ = document.getElementById('jump');
+const btnS = document.getElementById('shoot');
 const musicBtn = document.getElementById('musicBtn');
 
 // ---------- karaktärer ----------
@@ -215,6 +218,7 @@ const sOops = () => beep(220,0.4,'sawtooth',0.12,-120);
 const sBoop = () => beep(500,0.18,'triangle',0.18,300);
 const sWin  = () => { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'square',0.13),i*160)); };
 const sFart = () => { beep(110,0.3,'sawtooth',0.16,-50); setTimeout(()=>beep(85,0.22,'sawtooth',0.13,-30),120); };
+const sThrow = () => beep(620,0.18,'square',0.12,400);
 
 // ---------- AFROBEAT-MUSIK 🎵 ----------
 let musicOn = true, musicTimer = null, musicGain = null, nextNote = 0, mStep = 0;
@@ -296,16 +300,18 @@ musicBtn.addEventListener('click', () => {
 });
 
 // ---------- input ----------
-const keys = { l:false, r:false, j:false };
+const keys = { l:false, r:false, j:false, s:false };
 addEventListener('keydown', e => {
   if (e.code==='ArrowLeft') keys.l=true;
   if (e.code==='ArrowRight') keys.r=true;
   if (e.code==='Space'||e.code==='ArrowUp') { keys.j=true; e.preventDefault(); }
+  if (e.code==='KeyF') { keys.s=true; e.preventDefault(); }
 });
 addEventListener('keyup', e => {
   if (e.code==='ArrowLeft') keys.l=false;
   if (e.code==='ArrowRight') keys.r=false;
   if (e.code==='Space'||e.code==='ArrowUp') keys.j=false;
+  if (e.code==='KeyF') keys.s=false;
 });
 function bindBtn(el, prop) {
   const on = e => { e.preventDefault(); keys[prop]=true; };
@@ -315,12 +321,12 @@ function bindBtn(el, prop) {
   el.addEventListener('pointerleave', off);
   el.addEventListener('pointercancel', off);
 }
-bindBtn(btnL,'l'); bindBtn(btnR,'r'); bindBtn(btnJ,'j');
+bindBtn(btnL,'l'); bindBtn(btnR,'r'); bindBtn(btnJ,'j'); bindBtn(btnS,'s');
 
 // ---------- värld ----------
 const LEVEL_END = 5600;
-let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds, farts;
-let score, state, msgTimer, time=0, invuln=0, jumpHeld=false;
+let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds, farts, frisbees, flowers, shop;
+let score, state, msgTimer, time=0, invuln=0, jumpHeld=false, shootHeld=false, shootCD=0;
 
 function makeWorld() {
   player = { x:80, y:GROUND-70, w:44, h:70, vx:0, vy:0, onGround:false, face:1, squash:1 };
@@ -340,6 +346,11 @@ function makeWorld() {
     {x:4250,y:GROUND-110,w:130,h:24}
   ];
   checkpoints = [{x:1900,hit:false},{x:3700,hit:false}];
+  // lila studs-blommor (svampblommor) man hoppar upp på
+  flowers = [1000,1750,2600,3550,4300].map(x=>({x, y:GROUND-20, bounce:0}));
+  // godisaffär KVILLETORGET att äta vid
+  shop = { x:2950, w:240, ate:false };
+  frisbees = [];
   boss = { x:5350, y:GROUND-130, w:130, h:130, hp:3, vx:0, vy:0, onGround:true, hurt:0, dir:-1, jumpT:2, dead:false, deadT:0, size:1 };
   particles = []; farts = [];
   clouds = Array.from({length:14},(_,i)=>({x:i*450+Math.random()*200, y:40+Math.random()*120, s:0.7+Math.random()*0.8}));
@@ -419,6 +430,13 @@ function update(dt) {
   else p.vx *= 0.7;
   if (keys.j && p.onGround && !jumpHeld) { p.vy = -17.5; p.onGround = false; sJump(); p.squash = 1.25; }
   jumpHeld = keys.j;
+  // kasta blå frisbee
+  if (shootCD>0) shootCD -= dt;
+  if (keys.s && !shootHeld && shootCD<=0) {
+    frisbees.push({ x:p.x+p.w/2, y:p.y+30, dir:p.face, t:0, spin:0 });
+    shootCD = 0.35; sThrow();
+  }
+  shootHeld = keys.s;
   p.vy += 38*dt; if (p.vy>18) p.vy=18;
   p.x += p.vx; p.y += p.vy;
   if (p.x < 0) p.x = 0;
@@ -432,6 +450,24 @@ function update(dt) {
       p.y = pl.y-p.h; p.vy=0; p.onGround=true;
     }
   });
+
+  // lila studs-blommor – hoppa upp på dem för en extra-studs!
+  flowers.forEach(fl=>{
+    if (fl.bounce>0) fl.bounce -= dt*4;
+    const top = fl.y - 18;
+    if (p.vy>0 && p.x+p.w-10>fl.x-26 && p.x+10<fl.x+26 &&
+        p.y+p.h>=top && p.y+p.h<=top+26) {
+      p.y = top-p.h; p.vy = -21; p.onGround=false; fl.bounce=1; sBoop();
+      emit(fl.x-cam, top, 8, ['#c77dff','#e0aaff','#fff']);
+    }
+  });
+
+  // godisaffär KVILLETORGET – ät godis när man går förbi
+  if (!shop.ate && p.x+p.w>shop.x && p.x<shop.x+shop.w) {
+    shop.ate = true; score += 5; sStar();
+    showMsg('MUMS! Godis från KVILLETORGET! 🍭🍬 +5', 1600);
+    emit(p.x-cam+p.w/2, p.y+20, 16, ['#ff8ae0','#ffd83d','#7ec8ff','#ff5a5a']);
+  }
 
   stars.forEach(s=>{
     s.t += dt*3;
@@ -486,6 +522,26 @@ function update(dt) {
     }
   });
   farts = farts.filter(f=>f.life>0);
+
+  // frisbees flyger och slår ut skunkar (och skadar bossen)
+  frisbees.forEach(fr=>{
+    fr.x += fr.dir * 8.5; fr.t += dt; fr.spin += dt*20;
+    skunks.forEach(s=>{
+      if (!s.dead && Math.abs(fr.x-(s.x+s.w/2))<32 && Math.abs(fr.y-(s.y+s.h/2))<34) {
+        s.dead = true; fr.t = 99; score += 2; sBoop();
+        emit(s.x-cam+s.w/2, s.y, 12, ['#5a96ff','#fff','#222']);
+        showMsg('PANG! 🥏🦨', 800);
+      }
+    });
+    if (!boss.dead && boss.hurt<=0 && fr.x>boss.x+15 && fr.x<boss.x+boss.w-15 &&
+        fr.y>boss.y && fr.y<boss.y+boss.h) {
+      fr.t = 99; boss.hp--; boss.hurt=0.8; boss.size*=0.85; sBoop();
+      emit(boss.x-cam+boss.w/2, boss.y+30, 14, ['#5a96ff','#8a5a2b','#fff']);
+      if (boss.hp<=0) { boss.dead=true; state='winning'; sWin(); showMsg('PFFFFT! 💨🚽',1500); }
+      else showMsg('PANG! 🥏', 800);
+    }
+  });
+  frisbees = frisbees.filter(fr=> fr.t<3 && fr.x>cam-60 && fr.x<cam+W+60);
 
   if (!boss.dead) {
     boss.jumpT -= dt;
@@ -560,6 +616,47 @@ function draw() {
   });
   ctx.font='42px serif';
   checkpoints.forEach(c=>{ const x=c.x-cam; if(x>-50&&x<W+50) ctx.fillText(c.hit?'🚩':'⚐', x, GROUND-6); });
+
+  // godisaffär KVILLETORGET
+  (function(){
+    const x = shop.x-cam; if (x<-260||x>W+40) return;
+    const sw = shop.w, sh = 150, sy = GROUND-sh;
+    // husvägg
+    ctx.fillStyle = '#ffe0ec'; ctx.fillRect(x, sy, sw, sh);
+    // randig markis
+    for (let i=0;i<sw/26;i++){ ctx.fillStyle = i%2?'#ff5a8a':'#fff'; ctx.fillRect(x+i*26, sy, 26, 22); }
+    // skylt
+    ctx.fillStyle = '#7a2d52'; ctx.beginPath(); ctx.roundRect(x+10, sy-40, sw-20, 34, 8); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.font='bold 22px Comic Sans MS, sans-serif'; ctx.textAlign='center';
+    ctx.fillText('🍭 KVILLETORGET 🍬', x+sw/2, sy-15);
+    // fönster med godis
+    ctx.fillStyle = '#bfe9ff'; ctx.fillRect(x+20, sy+34, sw-40, 70);
+    ctx.font='30px serif'; ctx.textAlign='left';
+    ['🍬','🍭','🍫','🧁','🍩','🍡'].forEach((e,i)=> ctx.fillText(e, x+30+i*((sw-60)/6), sy+78));
+    // dörr
+    ctx.fillStyle = '#7a4a2b'; ctx.fillRect(x+sw/2-22, sy+110, 44, sh-110);
+    ctx.fillStyle = '#ffd83d'; ctx.beginPath(); ctx.arc(x+sw/2+12, sy+135, 3, 0, 7); ctx.fill();
+  })();
+
+  // lila studs-blommor
+  flowers.forEach(fl=>{
+    const x = fl.x-cam; if (x<-50||x>W+50) return;
+    const squish = fl.bounce>0 ? fl.bounce*6 : 0;
+    // stjälk
+    ctx.strokeStyle='#3f9c4f'; ctx.lineWidth=6; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(x, GROUND); ctx.lineTo(x, fl.y-6+squish); ctx.stroke();
+    // rund lila kudde
+    ctx.fillStyle='#9d4edd';
+    ctx.beginPath(); ctx.ellipse(x, fl.y-16+squish, 28, 18-squish*0.5, 0, 0, 7); ctx.fill();
+    ctx.fillStyle='#c77dff';
+    ctx.beginPath(); ctx.ellipse(x, fl.y-20+squish, 22, 13-squish*0.4, 0, 0, 7); ctx.fill();
+    // rosa prickar
+    ctx.fillStyle='#ff9ed8';
+    [[-12,-2],[8,-4],[0,2],[-4,-8],[13,3]].forEach(d=>{
+      ctx.beginPath(); ctx.arc(x+d[0], fl.y-18+d[1]+squish, 3.2, 0, 7); ctx.fill();
+    });
+  });
+
   stars.forEach(s=>{
     if (s.got) return;
     const x = s.x-cam; if (x<-50||x>W+50) return;
@@ -599,6 +696,16 @@ function draw() {
     if (boss.deadT<2.5) ctx.fillText('💨', boss.x-cam+boss.w/2, GROUND-80);
   }
   drawHero(player.x-cam, player.y);
+  // blå frisbees
+  frisbees.forEach(fr=>{
+    const x = fr.x-cam;
+    ctx.save(); ctx.translate(x, fr.y); ctx.rotate(fr.spin);
+    ctx.fillStyle = '#2f7bff';
+    ctx.beginPath(); ctx.ellipse(0,0,15,6,0,0,7); ctx.fill();
+    ctx.fillStyle = '#7fb0ff';
+    ctx.beginPath(); ctx.ellipse(0,-2,10,3.5,0,0,7); ctx.fill();
+    ctx.restore();
+  });
   particles.forEach(pa=>{
     ctx.globalAlpha = Math.max(0,pa.life);
     ctx.fillStyle = pa.c;
@@ -611,7 +718,7 @@ function draw() {
     ctx.textAlign='center';
     ctx.font='70px serif'; ctx.fillText(CHARS[heroKey].spider ? '🎉🕷️🎉' : '🎉🧢🎉', W/2, 150);
     ctx.fillStyle='#ff5a2b'; ctx.font='bold 56px Comic Sans MS, sans-serif';
-    ctx.fillText(CHARS[heroKey].name + ' VANN!', W/2, 230);
+    ctx.fillText(CHARS[heroKey].name + ' VINNER!', W/2, 230);
     ctx.fillStyle='#2d5a8a'; ctx.font='bold 30px Comic Sans MS, sans-serif';
     ctx.fillText('Bajsmonstret spolades ner i toaletten! 🚽💨', W/2, 285);
     ctx.fillText('⭐ Du samlade ' + score + ' stjärnor!', W/2, 330);
@@ -620,7 +727,7 @@ function draw() {
     if (keys.j) {
       makeWorld(); respawnX=80; state='menu';
       overlay.classList.remove('hidden');
-      btnL.classList.add('hidden'); btnR.classList.add('hidden'); btnJ.classList.add('hidden');
+      btnL.classList.add('hidden'); btnR.classList.add('hidden'); btnJ.classList.add('hidden'); btnS.classList.add('hidden');
       drawPreviews();
     }
   }
@@ -639,6 +746,7 @@ function loop(t) {
 startBtn.addEventListener('click', () => {
   overlay.classList.add('hidden');
   btnL.classList.remove('hidden'); btnR.classList.remove('hidden'); btnJ.classList.remove('hidden');
+  btnS.classList.remove('hidden');
   musicBtn.classList.remove('hidden');
   makeWorld(); respawnX = 80; state = 'play';
   beep(523,0.15,'square',0.1);
