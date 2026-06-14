@@ -324,8 +324,8 @@ function bindBtn(el, prop) {
 bindBtn(btnL,'l'); bindBtn(btnR,'r'); bindBtn(btnJ,'j'); bindBtn(btnS,'s');
 
 // ---------- värld ----------
-const LEVEL_END = 5600;
-let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds, farts, frisbees, flowers, shop, lifts;
+const LEVEL_END = 5750;
+let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds, farts, frisbees, flowers, shop, lifts, mushrooms, mushTimer, flag;
 let score, state, msgTimer, time=0, invuln=0, jumpHeld=false, shootHeld=false, shootCD=0;
 
 function makeWorld() {
@@ -366,7 +366,8 @@ function makeWorld() {
   shop = { x:2950, w:240, ate:false };
   frisbees = [];
   boss = { x:5350, y:GROUND-130, w:130, h:130, hp:3, vx:0, vy:0, onGround:true, hurt:0, dir:-1, jumpT:2, dead:false, deadT:0, size:1 };
-  particles = []; farts = [];
+  particles = []; farts = []; frisbees = []; mushrooms = []; mushTimer = 3;
+  flag = { x:5520, h:300, pulled:0 }; // Karlatornets flagga vid mål
   clouds = Array.from({length:14},(_,i)=>({x:i*450+Math.random()*200, y:40+Math.random()*120, s:0.7+Math.random()*0.8}));
 }
 
@@ -383,6 +384,33 @@ function emit(x,y,n,colors,spread,up) {
     x,y, vx:(Math.random()-0.5)*spread, vy:-Math.random()*up-2,
     c:colors[Math.random()*colors.length|0], r:3+Math.random()*5, life:1
   });
+}
+
+// rita söta svamp-gosedjuret 🍄
+function drawMushroom(g, r) {
+  // röd hatt
+  g.fillStyle = '#e8201b';
+  g.beginPath(); g.arc(0,0,r,Math.PI,0); g.fill();
+  g.beginPath(); g.ellipse(0,0,r,r*0.32,0,0,Math.PI); g.fill();
+  // vita prickar
+  g.fillStyle = '#fff';
+  g.beginPath(); g.arc(0,-r*0.35,r*0.32,0,7); g.fill();
+  g.beginPath(); g.arc(-r*0.6,-r*0.05,r*0.16,0,7); g.fill();
+  g.beginPath(); g.arc(r*0.6,-r*0.1,r*0.14,0,7); g.fill();
+  // vit kropp
+  g.fillStyle = '#f4f1ec';
+  g.beginPath(); g.roundRect(-r*0.62, r*0.02, r*1.24, r*0.78, r*0.18); g.fill();
+  // ansikte
+  g.fillStyle = '#4a2c1a';
+  g.beginPath(); g.ellipse(-r*0.22, r*0.32, r*0.05, r*0.08, 0,0,7); g.fill();
+  g.beginPath(); g.ellipse(r*0.22, r*0.32, r*0.05, r*0.08, 0,0,7); g.fill();
+  // leende
+  g.strokeStyle = '#4a2c1a'; g.lineWidth = Math.max(1.5,r*0.04); g.lineCap='round';
+  g.beginPath(); g.arc(0, r*0.34, r*0.16, 0.15, Math.PI-0.15); g.stroke();
+  // rosa kinder
+  g.fillStyle = 'rgba(255,150,170,0.6)';
+  g.beginPath(); g.arc(-r*0.42, r*0.46, r*0.1, 0,7); g.fill();
+  g.beginPath(); g.arc(r*0.42, r*0.46, r*0.1, 0,7); g.fill();
 }
 
 function drawHero(px, py) {
@@ -558,11 +586,28 @@ function update(dt) {
         fr.y>boss.y && fr.y<boss.y+boss.h) {
       fr.t = 99; boss.hp--; boss.hurt=0.8; boss.size*=0.85; sBoop();
       emit(boss.x-cam+boss.w/2, boss.y+30, 14, ['#5a96ff','#8a5a2b','#fff']);
-      if (boss.hp<=0) { boss.dead=true; state='winning'; sWin(); showMsg('PFFFFT! 💨🚽',1500); }
+      if (boss.hp<=0) { boss.dead=true; sWin(); showMsg('PFFFFT! 💨🚽 Spring till Karlatornet! 🏢🚩',2200); }
       else showMsg('PANG! 🥏', 800);
     }
   });
   frisbees = frisbees.filter(fr=> fr.t<3 && fr.x>cam-60 && fr.x<cam+W+60);
+
+  // svamp-gosedjur dalar ner från himlen då och då 🍄
+  mushTimer -= dt;
+  if (mushTimer<=0 && state==='play') {
+    mushTimer = 4 + Math.random()*4;
+    mushrooms.push({ x: cam + 150 + Math.random()*(W-300), y:-40, vy:1.6+Math.random()*0.8, sway:Math.random()*6, got:false });
+  }
+  mushrooms.forEach(m=>{
+    m.y += m.vy; m.sway += dt*2;
+    const mx = m.x + Math.sin(m.sway)*1.5;
+    if (!m.got && Math.abs(p.x+p.w/2-mx)<40 && Math.abs(p.y+p.h/2-m.y)<46) {
+      m.got = true; score += 3; sStar();
+      emit(mx-cam, m.y, 16, ['#e8201b','#fff','#ff9eb0']);
+      showMsg('Svamp-kompis! 🍄 +3', 1100);
+    }
+  });
+  mushrooms = mushrooms.filter(m=> !m.got && m.y < GROUND-10);
 
   if (!boss.dead) {
     boss.jumpT -= dt;
@@ -585,14 +630,26 @@ function update(dt) {
       const t = ['SPLAT! 💥','Igen! 💪','En gång till!'];
       showMsg(boss.hp>0 ? t[3-boss.hp-1]||'SPLAT!' : '', 1000);
       if (boss.hp<=0) {
-        boss.dead = true; state='winning'; sWin();
-        showMsg('PFFFFT! 💨🚽', 1500);
+        boss.dead = true; sWin();
+        showMsg('PFFFFT! 💨🚽 Spring till Karlatornet! 🏢🚩', 2200);
       }
     } else if (invuln<=0 && !stomp && hitX && p.y+p.h>boss.y+40 && p.y<boss.y+boss.h && boss.hurt<=0) respawn();
   } else {
     boss.deadT += dt;
     if (boss.deadT<2) emit(boss.x-cam+boss.w/2, boss.y+boss.h/2, 2, ['#8a5a2b','#fff','#7ec8ff']);
-    if (boss.deadT>2.5 && state==='winning') {
+  }
+
+  // Karlatornets flagga – dra ner den (gå fram till tornet) för att vinna! 🏢🚩
+  if (boss.dead && state==='play' && p.x+p.w > flag.x) {
+    flag.pulled += dt*0.8;
+    if (flag.pulled >= 1) {
+      flag.pulled = 1; state='winning';
+      emit(flag.x-cam, 200, 30, ['#ffd83d','#ff5a5a','#3fbf5a','#5a8aff','#ff8ae0'], 10, 12);
+    }
+  }
+  if (state==='winning') {
+    boss.deadT += dt;
+    if (boss.deadT>1.2) {
       state='won'; sWin();
       for (let i=0;i<5;i++) setTimeout(()=>{
         emit(200+Math.random()*500, 100+Math.random()*150, 25, ['#ff5a5a','#ffd83d','#3fbf5a','#5a8aff','#ff8ae0'], 10, 12);
@@ -764,6 +821,51 @@ function draw() {
     ctx.fillText('🚽', boss.x-cam+boss.w/2, GROUND);
     if (boss.deadT<2.5) ctx.fillText('💨', boss.x-cam+boss.w/2, GROUND-80);
   }
+
+  // KARLATORNET (Göteborgs skyskrapa) med målflagga 🏢🚩
+  if (flag) {
+    const tx = flag.x - cam;
+    if (tx>-200 && tx<W+260) {
+      const tw = 110, th = 340, ty = GROUND-th, tcx = flag.x+tw/2-cam;
+      // tornkropp – lutande modern skyskrapa
+      const grad = ctx.createLinearGradient(tx,0,tx+tw,0);
+      grad.addColorStop(0,'#6fb7e8'); grad.addColorStop(0.5,'#bfe4fb'); grad.addColorStop(1,'#5a9fd4');
+      ctx.fillStyle = grad;
+      ctx.beginPath();
+      ctx.moveTo(tx, GROUND); ctx.lineTo(tx+14, ty); ctx.lineTo(tx+tw-6, ty+10); ctx.lineTo(tx+tw, GROUND);
+      ctx.closePath(); ctx.fill();
+      // fönsterrader
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      for (let r=0;r<14;r++) for (let c=0;c<4;c++) {
+        ctx.fillRect(tx+18+c*22, ty+20+r*22, 13, 13);
+      }
+      // tak
+      ctx.fillStyle = '#4a7fa5';
+      ctx.fillRect(tx+12, ty, tw-18, 8);
+      // flaggstång på taket
+      const poleX = tcx, poleTop = ty-90, poleBot = ty;
+      ctx.strokeStyle = '#888'; ctx.lineWidth = 4; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(poleX, poleTop); ctx.lineTo(poleX, poleBot); ctx.stroke();
+      ctx.fillStyle='#ffd83d'; ctx.beginPath(); ctx.arc(poleX, poleTop, 5, 0, 7); ctx.fill();
+      // flaggan glider ner när man drar
+      const fy = poleTop + (poleBot - poleTop - 40) * (flag.pulled||0);
+      ctx.fillStyle = CHARS[heroKey].spider ? '#e0342f' : '#3fbf5a';
+      ctx.beginPath();
+      ctx.moveTo(poleX, fy); ctx.lineTo(poleX+50, fy+8); ctx.lineTo(poleX+50, fy+26);
+      ctx.lineTo(poleX, fy+34); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.font='bold 13px Comic Sans MS, sans-serif'; ctx.textAlign='center';
+      ctx.fillText(CHARS[heroKey].spider ? '🕷️' : '👑', poleX+25, fy+24);
+    }
+  }
+  // svamp-gosedjur som dalar ner 🍄
+  if (mushrooms) mushrooms.forEach(m=>{
+    const mx = m.x + Math.sin(m.sway)*1.5 - cam;
+    if (mx<-50||mx>W+50) return;
+    ctx.save(); ctx.translate(mx, m.y); ctx.rotate(Math.sin(m.sway)*0.12);
+    drawMushroom(ctx, 24);
+    ctx.restore();
+  });
+
   drawHero(player.x-cam, player.y);
   // blå frisbees
   frisbees.forEach(fr=>{
