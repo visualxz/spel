@@ -22,22 +22,24 @@
   #musicBtn:active { transform:scale(.92); }
   #overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:linear-gradient(180deg,#7ec8ff,#b6f0ff); z-index:10; text-align:center; padding:16px; overflow:auto; }
-  #overlay h1 { font-size:min(8vw,46px); color:#fff; text-shadow:3px 3px 0 #ff8a3d, 6px 6px 0 rgba(0,0,0,.15); margin-bottom:4px; }
-  #overlay p { font-size:min(4.2vw,20px); color:#2d5a8a; margin:4px 0 10px; }
-  #chars { display:flex; gap:14px; margin:10px 0 16px; flex-wrap:wrap; justify-content:center; }
-  .char { width:140px; padding:12px 8px; border-radius:18px; border:4px solid #fff; cursor:pointer;
-    background:rgba(255,255,255,.65); font-family:inherit; font-size:17px; font-weight:bold; color:#2d5a8a; }
-  .char canvas { display:block; margin:0 auto 6px; }
-  .char.sel { border-color:#ffb53d; background:#fff3c7; transform:scale(1.07); box-shadow:0 4px 12px rgba(0,0,0,.15); }
-  #startBtn { font-size:min(7vw,32px); padding:14px 42px; border-radius:50px; border:none; cursor:pointer;
+  #overlay h1 { font-size:min(7vw,40px); color:#fff; text-shadow:3px 3px 0 #ff8a3d, 6px 6px 0 rgba(0,0,0,.15); margin-bottom:4px; }
+  #overlay p { font-size:min(4.2vw,19px); color:#2d5a8a; margin:4px 0 8px; }
+  .row { display:flex; gap:14px; margin:6px 0; flex-wrap:wrap; justify-content:center; }
+  .char,.lvl { border-radius:18px; border:4px solid #fff; cursor:pointer; font-family:inherit; font-weight:bold; color:#2d5a8a; }
+  .char { width:140px; padding:10px 8px; font-size:17px; background:rgba(255,255,255,.65); }
+  .char canvas { display:block; margin:0 auto 4px; }
+  .lvl { padding:12px 20px; font-size:18px; background:rgba(255,255,255,.65); }
+  .char.sel,.lvl.sel { border-color:#ffb53d; background:#fff3c7; transform:scale(1.06); box-shadow:0 4px 12px rgba(0,0,0,.15); }
+  .label { font-size:14px; color:#1b3a5a; font-weight:bold; margin-top:8px; }
+  #startBtn { font-size:min(7vw,30px); padding:13px 40px; border-radius:50px; border:none; cursor:pointer; margin-top:12px;
     background:linear-gradient(180deg,#ffd83d,#ffb53d); color:#7a4a00; font-weight:bold; font-family:inherit;
     box-shadow:0 6px 0 #d98e1e; animation:bounce 1s infinite; }
   #startBtn:active { transform:translateY(4px); box-shadow:0 2px 0 #d98e1e; }
   @keyframes bounce { 0%,100%{transform:scale(1)} 50%{transform:scale(1.07)} }
   .hidden { display:none !important; }
-  #hud { position:absolute; top:12px; left:14px; font-size:26px; color:#fff; text-shadow:2px 2px 3px rgba(0,0,0,.35); z-index:4; font-weight:bold; }
-  #msg { position:absolute; top:18%; width:100%; text-align:center; font-size:min(8vw,40px); color:#fff;
-    text-shadow:3px 3px 0 rgba(0,0,0,.25); z-index:6; pointer-events:none; opacity:0; transition:opacity .3s; font-weight:bold; }
+  #hud { position:absolute; top:12px; left:14px; font-size:24px; color:#fff; text-shadow:2px 2px 3px rgba(0,0,0,.35); z-index:4; font-weight:bold; }
+  #msg { position:absolute; top:16%; width:100%; text-align:center; font-size:min(7vw,36px); color:#fff;
+    text-shadow:3px 3px 0 rgba(0,0,0,.25); z-index:6; pointer-events:none; opacity:0; transition:opacity .3s; font-weight:bold; padding:0 10px; }
 </style>
 </head>
 <body>
@@ -52,18 +54,22 @@
   <div id="shoot" class="btn hidden">🥏</div>
   <div id="overlay">
     <h1>PRINCE &amp; NATHAN<br>vs BAJSMONSTRET</h1>
-    <p>Välj din hjälte! Hoppa över bajset och pruttarna,<br>hoppa PÅ skunkarna – och besegra det STORA BAJSMONSTRET! 💩</p>
-    <div id="chars">
+    <div class="label">VÄLJ HJÄLTE</div>
+    <div class="row" id="chars">
       <button class="char sel" data-c="cap"><canvas width="80" height="100"></canvas>PRINCE</button>
       <button class="char" data-c="nathan"><canvas width="80" height="100"></canvas>NATHAN</button>
     </div>
-    <p style="font-size:min(3.8vw,16px)">⬅️➡️ = spring &nbsp; | &nbsp; mellanslag = hoppa &nbsp; | &nbsp; F / 🥏 = kasta frisbee</p>
+    <div class="label">VÄLJ BANA</div>
+    <div class="row" id="levels">
+      <button class="lvl sel" data-l="1">🌳 Bana 1<br><span style="font-size:13px;font-weight:normal">Bajsmonstret</span></button>
+      <button class="lvl" data-l="2">🛝 Bana 2<br><span style="font-size:13px;font-weight:normal">Plikta lekpark</span></button>
+    </div>
+    <p style="font-size:min(3.6vw,15px)">⬅️➡️ spring &nbsp;|&nbsp; mellanslag hoppa &nbsp;|&nbsp; F / 🥏 kasta frisbee</p>
     <button id="startBtn">▶ STARTA!</button>
   </div>
 </div>
 <script>
 (() => {
-// roundRect-stöd för äldre webbläsare
 if (!CanvasRenderingContext2D.prototype.roundRect) {
   CanvasRenderingContext2D.prototype.roundRect = function(x,y,w,h,r){
     if (typeof r === 'number') r = Math.min(r, w/2, h/2);
@@ -71,862 +77,622 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
     this.arcTo(x,y+h,x,y,r); this.arcTo(x,y,x+w,y,r); this.closePath(); return this;
   };
 }
-
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
 const W = 900, H = 500, GROUND = 430;
 const overlay = document.getElementById('overlay'), startBtn = document.getElementById('startBtn');
 const hud = document.getElementById('hud'), msgEl = document.getElementById('msg');
 const btnL = document.getElementById('left'), btnR = document.getElementById('right'), btnJ = document.getElementById('jump');
-const btnS = document.getElementById('shoot');
-const musicBtn = document.getElementById('musicBtn');
+const btnS = document.getElementById('shoot'), musicBtn = document.getElementById('musicBtn');
 
 // ---------- karaktärer ----------
 const CHARS = {
   cap:    { name:'PRINCE', skin:'#eebd8a', shirt:'#3fbf5a', arms:'#3fbf5a', pants:'#3a6bd6', shoes:'#e0342f', hair:'blond', cap:true,  spider:false },
   nathan: { name:'NATHAN', skin:'#5c3317', shirt:'#e0342f', arms:'#e0342f', pants:'#2456c4', shoes:'#1a1a1a', hair:'black', cap:false, spider:true }
 };
-let heroKey = 'cap';
+let heroKey = 'cap', levelNum = 1;
 
-// ---------- rita figuren (används i spelet OCH i valrutorna) ----------
 function renderFigure(g, c, run, arm) {
   run = run||0; arm = arm||0;
-  // ben
   g.strokeStyle = c.pants; g.lineWidth = 9; g.lineCap = 'round';
   g.beginPath(); g.moveTo(-7,-26); g.lineTo(-9+run*0.6,-2); g.stroke();
   g.beginPath(); g.moveTo(7,-26); g.lineTo(9-run*0.6,-2); g.stroke();
-  // skor
   g.fillStyle = c.shoes;
   g.beginPath(); g.ellipse(-9+run*0.6,-2,8,5,0,0,7); g.fill();
   g.beginPath(); g.ellipse(9-run*0.6,-2,8,5,0,0,7); g.fill();
-  // kropp
   g.fillStyle = c.shirt;
   g.beginPath(); g.roundRect(-14,-48,28,26,8); g.fill();
   if (c.spider) {
-    // spindelnät på tröjan
     g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.2;
     g.beginPath(); g.moveTo(0,-48); g.lineTo(0,-22); g.stroke();
     g.beginPath(); g.moveTo(-14,-40); g.lineTo(14,-40); g.stroke();
     g.beginPath(); g.moveTo(-14,-31); g.lineTo(14,-31); g.stroke();
     g.beginPath(); g.moveTo(-12,-48); g.lineTo(10,-22); g.stroke();
     g.beginPath(); g.moveTo(12,-48); g.lineTo(-10,-22); g.stroke();
-    // spindel på bröstet
     g.fillStyle = '#0d0d0d';
     g.beginPath(); g.ellipse(0,-34,4,6,0,0,7); g.fill();
     g.beginPath(); g.arc(0,-41,2.8,0,7); g.fill();
     g.strokeStyle = '#0d0d0d'; g.lineWidth = 1.4;
-    [[-4,-38,-10,-43],[4,-38,10,-43],[-4,-35,-11,-35],[4,-35,11,-35],
-     [-4,-31,-10,-27],[4,-31,10,-27]].forEach(seg=>{
-      g.beginPath(); g.moveTo(seg[0],seg[1]); g.lineTo(seg[2],seg[3]); g.stroke();
-    });
+    [[-4,-38,-10,-43],[4,-38,10,-43],[-4,-35,-11,-35],[4,-35,11,-35],[-4,-31,-10,-27],[4,-31,10,-27]].forEach(s=>{
+      g.beginPath(); g.moveTo(s[0],s[1]); g.lineTo(s[2],s[3]); g.stroke(); });
   } else {
-    // krona på tröjan
     g.fillStyle = '#ffd83d';
     g.beginPath();
     g.moveTo(-7,-30); g.lineTo(-7,-38); g.lineTo(-3.5,-33); g.lineTo(0,-39);
     g.lineTo(3.5,-33); g.lineTo(7,-38); g.lineTo(7,-30); g.closePath(); g.fill();
   }
-  // armar
   g.strokeStyle = c.arms; g.lineWidth = 8; g.lineCap = 'round';
   g.beginPath(); g.moveTo(-13,-44); g.lineTo(-20-arm*0.3,-32+arm*0.4); g.stroke();
   g.beginPath(); g.moveTo(13,-44); g.lineTo(20+arm*0.3,-32-arm*0.4); g.stroke();
-  // huvud
   g.fillStyle = c.skin;
   g.beginPath(); g.arc(0,-60,15,0,7); g.fill();
-  // hår
   if (c.hair === 'blond') {
     g.fillStyle = '#ffe066';
     if (c.cap) {
-      // lockar under kepsen
-      [[-15,-62],[-13,-67],[15,-62],[13,-67],[-16,-58]].forEach(cu=>{
-        g.beginPath(); g.arc(cu[0],cu[1],5.5,0,7); g.fill();
-      });
-      // röd keps
+      [[-15,-62],[-13,-67],[15,-62],[13,-67],[-16,-58]].forEach(cu=>{ g.beginPath(); g.arc(cu[0],cu[1],5.5,0,7); g.fill(); });
       g.fillStyle = '#e0342f';
       g.beginPath(); g.arc(0,-66,15,Math.PI,0); g.fill();
       g.beginPath(); g.roundRect(6,-70,18,6,3); g.fill();
       g.fillStyle = '#b8241f';
       g.beginPath(); g.roundRect(-15,-68,30,4,2); g.fill();
     } else {
-      [[-13,-70],[-6,-75],[2,-76],[10,-73],[15,-66],[-16,-63],[6,-78],[-2,-79]].forEach(cu=>{
-        g.beginPath(); g.arc(cu[0],cu[1],6.5,0,7); g.fill();
-      });
+      [[-13,-70],[-6,-75],[2,-76],[10,-73],[15,-66],[-16,-63],[6,-78],[-2,-79]].forEach(cu=>{ g.beginPath(); g.arc(cu[0],cu[1],6.5,0,7); g.fill(); });
     }
   } else {
-    // svart hår (Nathan)
     g.fillStyle = '#1c1008';
     g.beginPath(); g.arc(0,-64,15,Math.PI,0); g.fill();
     g.beginPath(); g.ellipse(0,-68,14,8,0,0,7); g.fill();
     g.beginPath(); g.arc(-14,-60,4,0,7); g.fill();
     g.beginPath(); g.arc(14,-60,4,0,7); g.fill();
   }
-  // ansikte
   g.fillStyle = '#222';
   g.beginPath(); g.arc(5,-61,2.2,0,7); g.fill();
   g.beginPath(); g.arc(12,-61,2.2,0,7); g.fill();
   g.strokeStyle = '#c0392b'; g.lineWidth = 2;
   g.beginPath(); g.arc(8,-55,4,0.2,Math.PI-0.2); g.stroke();
 }
-
-// rita gubbarna i valrutorna
 function drawPreviews() {
   document.querySelectorAll('.char').forEach(b=>{
-    const pc = b.querySelector('canvas');
-    if (!pc) return;
-    try {
-      const g = pc.getContext('2d');
-      g.clearRect(0,0,pc.width,pc.height);
-      g.save();
-      g.translate(pc.width/2, pc.height-4);
-      renderFigure(g, CHARS[b.dataset.c], 0, 0);
-      g.restore();
-    } catch(e) { console.error('preview', e); }
+    const pc = b.querySelector('canvas'); if (!pc) return;
+    try { const g=pc.getContext('2d'); g.clearRect(0,0,pc.width,pc.height);
+      g.save(); g.translate(pc.width/2,pc.height-4); renderFigure(g,CHARS[b.dataset.c],0,0); g.restore();
+    } catch(e){}
   });
 }
-drawPreviews();
-window.addEventListener('load', drawPreviews);
-
+drawPreviews(); window.addEventListener('load', drawPreviews);
 document.querySelectorAll('.char').forEach(b=>{
-  b.addEventListener('click', ()=>{
-    document.querySelectorAll('.char').forEach(x=>x.classList.remove('sel'));
-    b.classList.add('sel');
-    heroKey = b.dataset.c;
-    beep(660,0.1,'square',0.1);
-  });
+  b.addEventListener('click', ()=>{ document.querySelectorAll('.char').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); heroKey=b.dataset.c; beep(660,0.1,'square',0.1); });
+});
+document.querySelectorAll('.lvl').forEach(b=>{
+  b.addEventListener('click', ()=>{ document.querySelectorAll('.lvl').forEach(x=>x.classList.remove('sel')); b.classList.add('sel'); levelNum=+b.dataset.l; beep(550,0.1,'square',0.1); });
 });
 
 // ---------- ljud ----------
 let AC = null;
-function ensureAC() {
-  if (!AC) { try { AC = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){} }
-  if (AC && AC.state === 'suspended') AC.resume();
-  return AC;
-}
-function beep(freq, dur, type, vol, slide) {
-  type = type||'sine'; vol = vol===undefined?0.15:vol; slide = slide||0;
-  try {
-    if (!ensureAC()) return;
-    const o = AC.createOscillator(), g = AC.createGain();
-    o.type = type; o.frequency.value = freq;
-    if (slide) o.frequency.linearRampToValueAtTime(freq+slide, AC.currentTime+dur);
-    g.gain.value = vol; g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime+dur);
-    o.connect(g); g.connect(AC.destination); o.start(); o.stop(AC.currentTime+dur);
-  } catch(e){}
-}
-const sJump = () => beep(300,0.25,'square',0.12,200);
-const sStar = () => { beep(880,0.12,'sine',0.15); setTimeout(()=>beep(1320,0.15,'sine',0.15),90); };
-const sOops = () => beep(220,0.4,'sawtooth',0.12,-120);
-const sBoop = () => beep(500,0.18,'triangle',0.18,300);
-const sWin  = () => { [523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'square',0.13),i*160)); };
-const sFart = () => { beep(110,0.3,'sawtooth',0.16,-50); setTimeout(()=>beep(85,0.22,'sawtooth',0.13,-30),120); };
-const sThrow = () => beep(620,0.18,'square',0.12,400);
+function ensureAC(){ if(!AC){try{AC=new(window.AudioContext||window.webkitAudioContext)();}catch(e){}} if(AC&&AC.state==='suspended')AC.resume(); return AC; }
+function beep(freq,dur,type,vol,slide){ type=type||'sine';vol=vol===undefined?0.15:vol;slide=slide||0;
+  try{ if(!ensureAC())return; const o=AC.createOscillator(),g=AC.createGain(); o.type=type;o.frequency.value=freq;
+    if(slide)o.frequency.linearRampToValueAtTime(freq+slide,AC.currentTime+dur);
+    g.gain.value=vol;g.gain.exponentialRampToValueAtTime(0.001,AC.currentTime+dur);
+    o.connect(g);g.connect(AC.destination);o.start();o.stop(AC.currentTime+dur);}catch(e){} }
+const sJump=()=>beep(300,0.25,'square',0.12,200);
+const sStar=()=>{beep(880,0.12,'sine',0.15);setTimeout(()=>beep(1320,0.15,'sine',0.15),90);};
+const sOops=()=>beep(220,0.4,'sawtooth',0.12,-120);
+const sBoop=()=>beep(500,0.18,'triangle',0.18,300);
+const sWin=()=>{[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,0.3,'square',0.13),i*160));};
+const sFart=()=>{beep(110,0.3,'sawtooth',0.16,-50);setTimeout(()=>beep(85,0.22,'sawtooth',0.13,-30),120);};
+const sThrow=()=>beep(620,0.18,'square',0.12,400);
+const sBurp=()=>{beep(90,0.35,'sawtooth',0.18,40);setTimeout(()=>beep(70,0.25,'square',0.14,30),140);};
+const sSpit=()=>beep(260,0.2,'sawtooth',0.13,-140);
 
-// ---------- AFROBEAT-MUSIK 🎵 ----------
-let musicOn = true, musicTimer = null, musicGain = null, nextNote = 0, mStep = 0;
-const TEMPO = 106, STEP_T = 60/TEMPO/4; // sextondelar
-
-function mTone(freq, t, dur, type, vol, dest) {
-  const o = AC.createOscillator(), g = AC.createGain();
-  o.type = type; o.frequency.setValueAtTime(freq, t);
-  g.gain.setValueAtTime(0, t);
-  g.gain.linearRampToValueAtTime(vol, t+0.008);
-  g.gain.exponentialRampToValueAtTime(0.001, t+dur);
-  o.connect(g); g.connect(dest);
-  o.start(t); o.stop(t+dur+0.05);
-}
-function mKick(t) {
-  const o = AC.createOscillator(), g = AC.createGain();
-  o.type='sine';
-  o.frequency.setValueAtTime(140, t);
-  o.frequency.exponentialRampToValueAtTime(45, t+0.1);
-  g.gain.setValueAtTime(0.9, t);
-  g.gain.exponentialRampToValueAtTime(0.001, t+0.16);
-  o.connect(g); g.connect(musicGain);
-  o.start(t); o.stop(t+0.2);
-}
-function mShaker(t, vol) {
-  const len = 0.05, buf = AC.createBuffer(1, AC.sampleRate*len, AC.sampleRate);
-  const d = buf.getChannelData(0);
-  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * (1-i/d.length);
-  const src = AC.createBufferSource(); src.buffer = buf;
-  const f = AC.createBiquadFilter(); f.type='highpass'; f.frequency.value=6000;
-  const g = AC.createGain(); g.gain.value = vol;
-  src.connect(f); f.connect(g); g.connect(musicGain);
-  src.start(t);
-}
-function mRim(t) {
-  mTone(1750, t, 0.045, 'square', 0.18, musicGain);
-}
-// A-moll-pentatonisk afrogroove, 2 takter (32 steg)
-const BASS = {0:55,3:55,6:65.4,10:82.4,14:49,16:55,19:55,22:73.4,26:82.4,30:65.4};
-const MEL  = {2:329.6,5:392,8:440,13:392,18:329.6,21:293.7,24:261.6,29:220};
-const KICK = [0,6,10];
-const RIM  = [4,12,14];
-
-function scheduleStep(s, t) {
-  const bs = s % 16;
-  if (KICK.indexOf(bs) > -1) mKick(t);
-  if (s % 2 === 1) mShaker(t, bs % 4 === 3 ? 0.3 : 0.15);
-  if (RIM.indexOf(bs) > -1 && (s<16 ? bs!==14 : true)) mRim(t);
-  if (BASS[s] !== undefined) mTone(BASS[s], t, 0.22, 'triangle', 0.65, musicGain);
-  if (MEL[s]  !== undefined) {
-    mTone(MEL[s], t, 0.3, 'sine', 0.3, musicGain);
-    mTone(MEL[s]*2, t, 0.12, 'triangle', 0.1, musicGain); // marimba-glans
-  }
-}
-function musicTick() {
-  if (!AC || !musicGain) return;
-  while (nextNote < AC.currentTime + 0.15) {
-    scheduleStep(mStep % 32, nextNote);
-    nextNote += STEP_T;
-    mStep++;
-  }
-}
-function startMusic() {
-  if (!ensureAC() || musicTimer) return;
-  musicGain = AC.createGain();
-  musicGain.gain.value = 0.07; // lagom lågt i bakgrunden
-  musicGain.connect(AC.destination);
-  nextNote = AC.currentTime + 0.05; mStep = 0;
-  musicTimer = setInterval(musicTick, 40);
-}
-function stopMusic() {
-  if (musicTimer) { clearInterval(musicTimer); musicTimer = null; }
-  if (musicGain) { try { musicGain.disconnect(); } catch(e){} musicGain = null; }
-}
-musicBtn.addEventListener('click', () => {
-  musicOn = !musicOn;
-  musicBtn.textContent = musicOn ? '🎵' : '🔇';
-  if (musicOn) startMusic(); else stopMusic();
-});
+// ---------- musik ----------
+let musicOn=true, musicTimer=null, musicGain=null, nextNote=0, mStep=0;
+const TEMPO=106, STEP_T=60/TEMPO/4;
+function mTone(freq,t,dur,type,vol,dest){ const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,t);g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(vol,t+0.008);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+0.05); }
+function mKick(t){ const o=AC.createOscillator(),g=AC.createGain();o.type='sine';
+  o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+0.1);
+  g.gain.setValueAtTime(0.9,t);g.gain.exponentialRampToValueAtTime(0.001,t+0.16);
+  o.connect(g);g.connect(musicGain);o.start(t);o.stop(t+0.2); }
+function mShaker(t,vol){ const len=0.05,buf=AC.createBuffer(1,AC.sampleRate*len,AC.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*(1-i/d.length);
+  const src=AC.createBufferSource();src.buffer=buf;const f=AC.createBiquadFilter();f.type='highpass';f.frequency.value=6000;
+  const g=AC.createGain();g.gain.value=vol;src.connect(f);f.connect(g);g.connect(musicGain);src.start(t); }
+function mRim(t){ mTone(1750,t,0.045,'square',0.18,musicGain); }
+const BASS={0:55,3:55,6:65.4,10:82.4,14:49,16:55,19:55,22:73.4,26:82.4,30:65.4};
+const MEL={2:329.6,5:392,8:440,13:392,18:329.6,21:293.7,24:261.6,29:220};
+const KICK=[0,6,10], RIM=[4,12,14];
+function scheduleStep(s,t){ const bs=s%16;
+  if(KICK.indexOf(bs)>-1)mKick(t);
+  if(s%2===1)mShaker(t,bs%4===3?0.3:0.15);
+  if(RIM.indexOf(bs)>-1&&(s<16?bs!==14:true))mRim(t);
+  if(BASS[s]!==undefined)mTone(BASS[s],t,0.22,'triangle',0.65,musicGain);
+  if(MEL[s]!==undefined){mTone(MEL[s],t,0.3,'sine',0.3,musicGain);mTone(MEL[s]*2,t,0.12,'triangle',0.1,musicGain);} }
+function musicTick(){ if(!AC||!musicGain)return; while(nextNote<AC.currentTime+0.15){scheduleStep(mStep%32,nextNote);nextNote+=STEP_T;mStep++;} }
+function startMusic(){ if(!ensureAC()||musicTimer)return; musicGain=AC.createGain();musicGain.gain.value=0.07;
+  musicGain.connect(AC.destination);nextNote=AC.currentTime+0.05;mStep=0;musicTimer=setInterval(musicTick,40); }
+function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} if(musicGain){try{musicGain.disconnect();}catch(e){}musicGain=null;} }
+musicBtn.addEventListener('click',()=>{ musicOn=!musicOn; musicBtn.textContent=musicOn?'🎵':'🔇'; if(musicOn)startMusic();else stopMusic(); });
 
 // ---------- input ----------
-const keys = { l:false, r:false, j:false, s:false };
-addEventListener('keydown', e => {
-  if (e.code==='ArrowLeft') keys.l=true;
-  if (e.code==='ArrowRight') keys.r=true;
-  if (e.code==='Space'||e.code==='ArrowUp') { keys.j=true; e.preventDefault(); }
-  if (e.code==='KeyF') { keys.s=true; e.preventDefault(); }
-});
-addEventListener('keyup', e => {
-  if (e.code==='ArrowLeft') keys.l=false;
-  if (e.code==='ArrowRight') keys.r=false;
-  if (e.code==='Space'||e.code==='ArrowUp') keys.j=false;
-  if (e.code==='KeyF') keys.s=false;
-});
-function bindBtn(el, prop) {
-  const on = e => { e.preventDefault(); keys[prop]=true; };
-  const off = e => { e.preventDefault(); keys[prop]=false; };
-  el.addEventListener('pointerdown', on);
-  el.addEventListener('pointerup', off);
-  el.addEventListener('pointerleave', off);
-  el.addEventListener('pointercancel', off);
-}
-bindBtn(btnL,'l'); bindBtn(btnR,'r'); bindBtn(btnJ,'j'); bindBtn(btnS,'s');
+const keys={l:false,r:false,j:false,s:false};
+addEventListener('keydown',e=>{ if(e.code==='ArrowLeft')keys.l=true; if(e.code==='ArrowRight')keys.r=true;
+  if(e.code==='Space'||e.code==='ArrowUp'){keys.j=true;e.preventDefault();} if(e.code==='KeyF'){keys.s=true;e.preventDefault();} });
+addEventListener('keyup',e=>{ if(e.code==='ArrowLeft')keys.l=false; if(e.code==='ArrowRight')keys.r=false;
+  if(e.code==='Space'||e.code==='ArrowUp')keys.j=false; if(e.code==='KeyF')keys.s=false; });
+function bindBtn(el,prop){ const on=e=>{e.preventDefault();keys[prop]=true;};const off=e=>{e.preventDefault();keys[prop]=false;};
+  el.addEventListener('pointerdown',on);el.addEventListener('pointerup',off);el.addEventListener('pointerleave',off);el.addEventListener('pointercancel',off); }
+bindBtn(btnL,'l');bindBtn(btnR,'r');bindBtn(btnJ,'j');bindBtn(btnS,'s');
 
 // ---------- värld ----------
-const LEVEL_END = 5750;
-let player, cam, stars, poops, skunks, platforms, checkpoints, boss, particles, clouds, farts, frisbees, flowers, shop, lifts, mushrooms, mushTimer, flag;
-let score, state, msgTimer, time=0, invuln=0, jumpHeld=false, shootHeld=false, shootCD=0;
+let LEVEL_END=5750;
+let player,cam,collects,poops,enemies,platforms,checkpoints,boss,particles,clouds,farts,frisbees,flowers,shop,lifts,skyItems,skyTimer,flag,projectiles;
+let score,state,msgTimer,time=0,invuln=0,jumpHeld=false,shootHeld=false,shootCD=0;
 
 function makeWorld() {
-  player = { x:80, y:GROUND-70, w:44, h:70, vx:0, vy:0, onGround:false, face:1, squash:1 };
-  cam = 0; score = 0; invuln = 0;
-  stars = [];
-  // glassar istället för stjärnor – vattenmelonglass 🍉 och jordgubbs-Solero 🍓
-  const flavors = ['melon','solero'];
-  [400,700,1000,1250,1500,1850,2200,2500,2750,3100,3450,3800,4100,4400,4700,5000].forEach((x,i)=>{
-    stars.push({x, y: GROUND-120-((x/250|0)%3)*55, got:false, t:Math.random()*6, flavor:flavors[i%2]});
-  });
-  poops = [550,900,1350,1700,2050,2400,2850,3250,3650,4050,4450,4850].map(x=>({x, y:GROUND-34, w:46, h:34}));
-  skunks = [
-    {x:1150,min:1050,max:1350},{x:2300,min:2150,max:2550},
-    {x:3000,min:2900,max:3200},{x:3900,min:3750,max:4150},{x:4650,min:4550,max:4800}
-  ].map(s=>({...s, y:GROUND-40, w:52, h:40, dir:1, dead:false, deadT:0, fartT:2+Math.random()*4}));
-  // bruna plattformar som en TRAPPA man klättrar uppåt på
-  platforms = [
-    // trappa 1
-    {x:760,y:GROUND-70,w:90,h:22},{x:870,y:GROUND-130,w:90,h:22},{x:980,y:GROUND-190,w:90,h:22},
-    // enstaka
-    {x:1560,y:GROUND-120,w:130,h:22},
-    // trappa 2
-    {x:2300,y:GROUND-70,w:90,h:22},{x:2410,y:GROUND-130,w:90,h:22},{x:2520,y:GROUND-190,w:90,h:22},{x:2630,y:GROUND-250,w:90,h:22},
-    {x:3500,y:GROUND-125,w:140,h:22},
-    // trappa 3
-    {x:4150,y:GROUND-70,w:90,h:22},{x:4260,y:GROUND-130,w:90,h:22},{x:4370,y:GROUND-190,w:90,h:22}
-  ];
-  // glasshissar som åker upp mot himlen 🍦
-  lifts = [
-    {x:1300,baseY:GROUND-30,topY:120,dir:1,phase:0,riding:false},
-    {x:3250,baseY:GROUND-30,topY:90,dir:1,phase:2,riding:false}
-  ];
-  checkpoints = [{x:1900,hit:false},{x:3700,hit:false}];
-  // lila studs-blommor (svampblommor) man hoppar upp på
-  flowers = [1000,1750,2600,3550,4300].map(x=>({x, y:GROUND-20, bounce:0}));
-  // godisaffär KVILLETORGET att äta vid
-  shop = { x:2950, w:240, ate:false };
-  frisbees = [];
-  boss = { x:5350, y:GROUND-130, w:130, h:130, hp:3, vx:0, vy:0, onGround:true, hurt:0, dir:-1, jumpT:2, dead:false, deadT:0, size:1 };
-  particles = []; farts = []; frisbees = []; mushrooms = []; mushTimer = 3;
-  flag = { x:5520, h:300, pulled:0 }; // Karlatornets flagga vid mål
-  clouds = Array.from({length:14},(_,i)=>({x:i*450+Math.random()*200, y:40+Math.random()*120, s:0.7+Math.random()*0.8}));
+  player={x:80,y:GROUND-70,w:44,h:70,vx:0,vy:0,onGround:false,face:1,squash:1};
+  cam=0;score=0;invuln=0;
+  particles=[];farts=[];frisbees=[];skyItems=[];skyTimer=3;projectiles=[];
+  clouds=Array.from({length:14},(_,i)=>({x:i*450+Math.random()*200,y:40+Math.random()*120,s:0.7+Math.random()*0.8}));
+
+  if (levelNum===1) {
+    LEVEL_END=5750;
+    const flavors=['melon','solero'];
+    collects=[400,700,1000,1250,1500,1850,2200,2500,2750,3100,3450,3800,4100,4400,4700,5000].map((x,i)=>({x,y:GROUND-120-((x/250|0)%3)*55,got:false,t:Math.random()*6,flavor:flavors[i%2]}));
+    poops=[550,900,1350,1700,2050,2400,2850,3250,3650,4050,4450,4850].map(x=>({x,y:GROUND-34,w:46,h:34}));
+    enemies=[{x:1150,min:1050,max:1350},{x:2300,min:2150,max:2550},{x:3000,min:2900,max:3200},{x:3900,min:3750,max:4150},{x:4650,min:4550,max:4800}]
+      .map(s=>({...s,type:'skunk',y:GROUND-40,w:52,h:40,dir:1,dead:false,deadT:0,fartT:2+Math.random()*4}));
+    platforms=[{x:760,y:GROUND-70,w:90,h:22},{x:870,y:GROUND-130,w:90,h:22},{x:980,y:GROUND-190,w:90,h:22},
+      {x:1560,y:GROUND-120,w:130,h:22},
+      {x:2300,y:GROUND-70,w:90,h:22},{x:2410,y:GROUND-130,w:90,h:22},{x:2520,y:GROUND-190,w:90,h:22},{x:2630,y:GROUND-250,w:90,h:22},
+      {x:3500,y:GROUND-125,w:140,h:22},
+      {x:4150,y:GROUND-70,w:90,h:22},{x:4260,y:GROUND-130,w:90,h:22},{x:4370,y:GROUND-190,w:90,h:22}];
+    lifts=[{x:1300,baseY:GROUND-30,topY:120,phase:0},{x:3250,baseY:GROUND-30,topY:90,phase:2}];
+    flowers=[1000,1750,2600,3550,4300].map(x=>({x,y:GROUND-20,bounce:0}));
+    shop={type:'candy',x:2950,w:240,ate:false};
+    boss={type:'poo',x:5350,y:GROUND-130,w:130,h:130,hp:3,vx:0,vy:0,onGround:true,hurt:0,dir:-1,jumpT:2,dead:false,deadT:0,size:1,spitT:0};
+    flag={x:5520,h:300,pulled:0};
+  } else {
+    // ---- BANA 2: PLIKTA LEKPARK ----
+    LEVEL_END=5750;
+    collects=[420,720,1050,1300,1600,1950,2250,2550,2850,3150,3500,3850,4150,4450,4750,5050].map((x,i)=>({x,y:GROUND-120-((x/260|0)%3)*55,got:false,t:Math.random()*6,flavor:'ball'}));
+    poops=[600,1000,1450,1800,2150,2500,2900,3300,3700,4100,4500,4900].map(x=>({x,y:GROUND-30,w:44,h:30,sand:true}));
+    enemies=[{x:1200,min:1100,max:1400},{x:2350,min:2200,max:2600},{x:3050,min:2950,max:3250},{x:3950,min:3800,max:4200},{x:4700,min:4600,max:4850}]
+      .map(s=>({...s,type:'hippo',y:GROUND-46,w:62,h:46,dir:1,dead:false,deadT:0,fartT:2.5+Math.random()*4}));
+    platforms=[{x:780,y:GROUND-70,w:90,h:22},{x:890,y:GROUND-130,w:90,h:22},{x:1000,y:GROUND-190,w:90,h:22},
+      {x:1620,y:GROUND-120,w:130,h:22},
+      {x:2350,y:GROUND-75,w:90,h:22},{x:2460,y:GROUND-135,w:90,h:22},{x:2570,y:GROUND-195,w:90,h:22},
+      {x:4200,y:GROUND-70,w:90,h:22},{x:4310,y:GROUND-130,w:90,h:22},{x:4420,y:GROUND-190,w:90,h:22}];
+    lifts=[{x:1350,baseY:GROUND-30,topY:120,phase:0},{x:3300,baseY:GROUND-30,topY:100,phase:2}];
+    flowers=[1050,1850,2750,3600,4350].map(x=>({x,y:GROUND-20,bounce:0}));
+    shop={type:'sign',x:1500,w:200};
+    // blåval-rutschkana som hinderbana (en stor sluttande ramp)
+    boss={type:'llama',x:5330,y:GROUND-120,w:120,h:120,hp:3,vx:0,vy:0,onGround:true,hurt:0,dir:-1,jumpT:2,dead:false,deadT:0,size:1,spitT:2};
+    flag={x:5520,h:300,pulled:0};
+  }
+  checkpoints=[{x:1900,hit:false},{x:3700,hit:false}];
 }
 
-let respawnX = 80;
-function showMsg(t, ms) {
-  ms = ms||1400;
-  msgEl.textContent = t; msgEl.style.opacity = 1;
-  clearTimeout(msgTimer);
-  msgTimer = setTimeout(()=>msgEl.style.opacity=0, ms);
-}
-function emit(x,y,n,colors,spread,up) {
-  spread = spread||6; up = up||8;
-  for (let i=0;i<n;i++) particles.push({
-    x,y, vx:(Math.random()-0.5)*spread, vy:-Math.random()*up-2,
-    c:colors[Math.random()*colors.length|0], r:3+Math.random()*5, life:1
-  });
-}
+let respawnX=80;
+function showMsg(t,ms){ ms=ms||1400; msgEl.textContent=t; msgEl.style.opacity=1; clearTimeout(msgTimer); msgTimer=setTimeout(()=>msgEl.style.opacity=0,ms); }
+function emit(x,y,n,colors,spread,up){ spread=spread||6;up=up||8;
+  for(let i=0;i<n;i++)particles.push({x,y,vx:(Math.random()-0.5)*spread,vy:-Math.random()*up-2,c:colors[Math.random()*colors.length|0],r:3+Math.random()*5,life:1}); }
 
-// rita söta svamp-gosedjuret 🍄
-function drawMushroom(g, r) {
-  // röd hatt
-  g.fillStyle = '#e8201b';
-  g.beginPath(); g.arc(0,0,r,Math.PI,0); g.fill();
+// ---------- ritfigurer ----------
+function drawMushroom(g,r){
+  g.fillStyle='#e8201b'; g.beginPath(); g.arc(0,0,r,Math.PI,0); g.fill();
   g.beginPath(); g.ellipse(0,0,r,r*0.32,0,0,Math.PI); g.fill();
-  // vita prickar
-  g.fillStyle = '#fff';
+  g.fillStyle='#fff';
   g.beginPath(); g.arc(0,-r*0.35,r*0.32,0,7); g.fill();
   g.beginPath(); g.arc(-r*0.6,-r*0.05,r*0.16,0,7); g.fill();
   g.beginPath(); g.arc(r*0.6,-r*0.1,r*0.14,0,7); g.fill();
-  // vit kropp
-  g.fillStyle = '#f4f1ec';
-  g.beginPath(); g.roundRect(-r*0.62, r*0.02, r*1.24, r*0.78, r*0.18); g.fill();
-  // ansikte
-  g.fillStyle = '#4a2c1a';
-  g.beginPath(); g.ellipse(-r*0.22, r*0.32, r*0.05, r*0.08, 0,0,7); g.fill();
-  g.beginPath(); g.ellipse(r*0.22, r*0.32, r*0.05, r*0.08, 0,0,7); g.fill();
-  // leende
-  g.strokeStyle = '#4a2c1a'; g.lineWidth = Math.max(1.5,r*0.04); g.lineCap='round';
-  g.beginPath(); g.arc(0, r*0.34, r*0.16, 0.15, Math.PI-0.15); g.stroke();
-  // rosa kinder
-  g.fillStyle = 'rgba(255,150,170,0.6)';
-  g.beginPath(); g.arc(-r*0.42, r*0.46, r*0.1, 0,7); g.fill();
-  g.beginPath(); g.arc(r*0.42, r*0.46, r*0.1, 0,7); g.fill();
+  g.fillStyle='#f4f1ec'; g.beginPath(); g.roundRect(-r*0.62,r*0.02,r*1.24,r*0.78,r*0.18); g.fill();
+  g.fillStyle='#4a2c1a';
+  g.beginPath(); g.ellipse(-r*0.22,r*0.32,r*0.05,r*0.08,0,0,7); g.fill();
+  g.beginPath(); g.ellipse(r*0.22,r*0.32,r*0.05,r*0.08,0,0,7); g.fill();
+  g.strokeStyle='#4a2c1a'; g.lineWidth=Math.max(1.5,r*0.04); g.lineCap='round';
+  g.beginPath(); g.arc(0,r*0.34,r*0.16,0.15,Math.PI-0.15); g.stroke();
+  g.fillStyle='rgba(255,150,170,0.6)';
+  g.beginPath(); g.arc(-r*0.42,r*0.46,r*0.1,0,7); g.fill();
+  g.beginPath(); g.arc(r*0.42,r*0.46,r*0.1,0,7); g.fill();
 }
-
-function drawHero(px, py) {
-  const p = player, c = CHARS[heroKey];
-  ctx.save();
-  ctx.translate(px+p.w/2, py+p.h);
-  ctx.scale(p.face, 1);
-  ctx.scale(1/Math.sqrt(p.squash), p.squash);
-  if (invuln>0 && Math.floor(time*12)%2===0) ctx.globalAlpha = 0.4;
-  const run = p.onGround && Math.abs(p.vx)>0.5 ? Math.sin(time*16)*8 : 0;
-  const arm = p.onGround ? run*0.5 : -10;
-  renderFigure(ctx, c, run, arm);
-  ctx.restore();
+function drawBasketball(g,r){
+  g.fillStyle='#e8772e'; g.beginPath(); g.arc(0,0,r,0,7); g.fill();
+  g.strokeStyle='#1a1a1a'; g.lineWidth=2; g.lineCap='round';
+  g.beginPath(); g.moveTo(-r,0); g.lineTo(r,0); g.stroke();
+  g.beginPath(); g.moveTo(0,-r); g.lineTo(0,r); g.stroke();
+  g.beginPath(); g.arc(-r*1.1,0,r*0.9,-0.7,0.7); g.stroke();
+  g.beginPath(); g.arc(r*1.1,0,r*0.9,Math.PI-0.7,Math.PI+0.7); g.stroke();
 }
+function drawHero(px,py){ const p=player,c=CHARS[heroKey];
+  ctx.save(); ctx.translate(px+p.w/2,py+p.h); ctx.scale(p.face,1); ctx.scale(1/Math.sqrt(p.squash),p.squash);
+  if(invuln>0&&Math.floor(time*12)%2===0)ctx.globalAlpha=0.4;
+  const run=p.onGround&&Math.abs(p.vx)>0.5?Math.sin(time*16)*8:0; const arm=p.onGround?run*0.5:-10;
+  renderFigure(ctx,c,run,arm); ctx.restore(); }
 
-function drawBoss() {
-  if (boss.dead && boss.deadT > 2.2) return;
-  const bx = boss.x - cam, by = boss.y;
-  ctx.save();
-  ctx.translate(bx+boss.w/2, by+boss.h);
-  let sz = boss.size;
-  if (boss.hurt>0) sz *= 1 - Math.sin(boss.hurt*20)*0.08;
-  if (boss.dead) sz *= Math.max(0, 1-boss.deadT/2);
-  ctx.scale(sz, sz);
-  const wob = Math.sin(time*4)*3;
-  ctx.font = '130px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
-  ctx.fillText('💩', 0, 10+wob*0.3);
-  ctx.strokeStyle = '#4a2c12'; ctx.lineWidth = 7; ctx.lineCap='round';
-  ctx.beginPath(); ctx.moveTo(-42,-78+wob); ctx.lineTo(-16,-66+wob); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(42,-78+wob); ctx.lineTo(16,-66+wob); ctx.stroke();
+function drawBoss(){
+  if(boss.dead&&boss.deadT>2.2)return;
+  const bx=boss.x-cam,by=boss.y;
+  ctx.save(); ctx.translate(bx+boss.w/2,by+boss.h);
+  let sz=boss.size; if(boss.hurt>0)sz*=1-Math.sin(boss.hurt*20)*0.08; if(boss.dead)sz*=Math.max(0,1-boss.deadT/2);
+  ctx.scale(sz,sz); const wob=Math.sin(time*4)*3;
+  if(boss.type==='poo'){
+    ctx.font='130px serif'; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillText('💩',0,10+wob*0.3);
+    ctx.strokeStyle='#4a2c12'; ctx.lineWidth=7; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(-42,-78+wob); ctx.lineTo(-16,-66+wob); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(42,-78+wob); ctx.lineTo(16,-66+wob); ctx.stroke();
+  } else {
+    // BIG BOSS LAMA 🦙
+    const fc=boss.dir; ctx.scale(fc,1);
+    // hals + huvud
+    ctx.fillStyle='#f0e6d2';
+    ctx.beginPath(); ctx.roundRect(-55,-30,90,52,16); ctx.fill(); // kropp
+    ctx.beginPath(); ctx.roundRect(10,-95,26,70,12); ctx.fill(); // hals
+    ctx.beginPath(); ctx.ellipse(34,-100,24,20,0,0,7); ctx.fill(); // huvud
+    ctx.beginPath(); ctx.ellipse(48,-96,12,9,0,0,7); ctx.fill(); // nos
+    // öron
+    ctx.beginPath(); ctx.moveTo(22,-116); ctx.lineTo(18,-132); ctx.lineTo(30,-118); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(40,-116); ctx.lineTo(46,-132); ctx.lineTo(48,-116); ctx.fill();
+    // ben
+    ctx.fillStyle='#e0d2b8';
+    [-40,-15,12,30].forEach(lx=>{ ctx.fillRect(lx,18,12,26); });
+    // ögon (arga)
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(34,-104,3,0,7); ctx.fill();
+    ctx.strokeStyle='#5a4a2a'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(26,-110); ctx.lineTo(40,-106); ctx.stroke();
+    // mun (gapar när den spottar)
+    ctx.fillStyle='#a85';
+    if(boss.spitT<0.5){ ctx.beginPath(); ctx.ellipse(52,-90,7,6,0,0,7); ctx.fill(); }
+  }
   ctx.restore();
-  if (!boss.dead) {
-    ctx.font = '26px serif'; ctx.textAlign='center';
-    for (let i=0;i<boss.hp;i++) ctx.fillText('💜', bx+boss.w/2-32+i*32, by-20);
-    ctx.font = 'bold 18px Comic Sans MS, sans-serif'; ctx.fillStyle='#5a3a1a';
-    ctx.fillText('BAJSMONSTRET', bx+boss.w/2, by-50);
+  if(!boss.dead){
+    ctx.font='26px serif'; ctx.textAlign='center';
+    for(let i=0;i<boss.hp;i++)ctx.fillText('💜',bx+boss.w/2-32+i*32,by-20);
+    ctx.font='bold 18px Comic Sans MS, sans-serif'; ctx.fillStyle='#5a3a1a';
+    ctx.fillText(boss.type==='poo'?'BAJSMONSTRET':'BIG BOSS LAMA',bx+boss.w/2,by-50);
   }
 }
 
 // ---------- uppdatering ----------
-function respawn() {
-  sOops();
-  emit(player.x-cam+player.w/2, player.y+player.h/2, 14, ['#8a5a2b','#b07a3f','#fff']);
-  const fun = ['Oj då! 💨','Usch! 😝','Hoppsan! Försök igen!','Nästan! Du klarar det! 💪'];
+function respawn(){
+  sOops(); emit(player.x-cam+player.w/2,player.y+player.h/2,14,['#8a5a2b','#b07a3f','#fff']);
+  const fun=['Oj då! 💨','Usch! 😝','Hoppsan! Försök igen!','Nästan! Du klarar det! 💪'];
   showMsg(fun[Math.random()*fun.length|0]);
-  // backa bara en liten bit – inte hela vägen tillbaka
-  player.x = Math.max(40, player.x - 150);
-  player.y = GROUND-200; player.vx=0; player.vy=0;
-  invuln = 2;
+  player.x=Math.max(40,player.x-150); player.y=GROUND-200; player.vx=0; player.vy=0; invuln=2;
 }
 
-function update(dt) {
-  time += dt;
-  if (invuln>0) invuln -= dt;
-  const p = player;
-  const sp = 4.6;
-  if (keys.l) { p.vx = -sp; p.face = -1; }
-  else if (keys.r) { p.vx = sp; p.face = 1; }
-  else p.vx *= 0.7;
-  if (keys.j && p.onGround && !jumpHeld) { p.vy = -17.5; p.onGround = false; sJump(); p.squash = 1.25; }
-  jumpHeld = keys.j;
-  // kasta blå frisbee
-  if (shootCD>0) shootCD -= dt;
-  if (keys.s && !shootHeld && shootCD<=0) {
-    frisbees.push({ x:p.x+p.w/2, y:p.y+30, dir:p.face, t:0, spin:0 });
-    shootCD = 0.35; sThrow();
-  }
-  shootHeld = keys.s;
-  p.vy += 38*dt; if (p.vy>18) p.vy=18;
-  p.x += p.vx; p.y += p.vy;
-  if (p.x < 0) p.x = 0;
-  p.squash += (1-p.squash)*0.15;
+function update(dt){
+  time+=dt; if(invuln>0)invuln-=dt;
+  const p=player; const sp=4.6;
+  if(keys.l){p.vx=-sp;p.face=-1;} else if(keys.r){p.vx=sp;p.face=1;} else p.vx*=0.7;
+  if(keys.j&&p.onGround&&!jumpHeld){p.vy=-17.5;p.onGround=false;sJump();p.squash=1.25;}
+  jumpHeld=keys.j;
+  if(shootCD>0)shootCD-=dt;
+  if(keys.s&&!shootHeld&&shootCD<=0){ frisbees.push({x:p.x+p.w/2,y:p.y+30,dir:p.face,t:0,spin:0}); shootCD=0.35; sThrow(); }
+  shootHeld=keys.s;
+  p.vy+=38*dt; if(p.vy>18)p.vy=18;
+  p.x+=p.vx; p.y+=p.vy; if(p.x<0)p.x=0; p.squash+=(1-p.squash)*0.15;
 
-  p.onGround = false;
-  if (p.y + p.h >= GROUND) { p.y = GROUND-p.h; if (p.vy>6) p.squash=0.75; p.vy=0; p.onGround=true; }
-  platforms.forEach(pl=>{
-    if (p.vy>=0 && p.x+p.w>pl.x+6 && p.x<pl.x+pl.w-6 &&
-        p.y+p.h>=pl.y && p.y+p.h<=pl.y+22) {
-      p.y = pl.y-p.h; p.vy=0; p.onGround=true;
-    }
-  });
+  p.onGround=false;
+  if(p.y+p.h>=GROUND){p.y=GROUND-p.h;if(p.vy>6)p.squash=0.75;p.vy=0;p.onGround=true;}
+  platforms.forEach(pl=>{ if(p.vy>=0&&p.x+p.w>pl.x+6&&p.x<pl.x+pl.w-6&&p.y+p.h>=pl.y&&p.y+p.h<=pl.y+22){p.y=pl.y-p.h;p.vy=0;p.onGround=true;} });
 
-  // glasshissar – åk upp mot himlen!
-  if (lifts) lifts.forEach(lf=>{
-    lf.y = lf.baseY + (lf.topY - lf.baseY) * (0.5 - 0.5*Math.cos(time*0.6 + lf.phase));
-    const lw = 70;
-    const onTop = p.vy>=0 && p.x+p.w>lf.x-lw/2+6 && p.x<lf.x+lw/2-6 &&
-                  p.y+p.h>=lf.y && p.y+p.h<=lf.y+22;
-    if (onTop) { p.y = lf.y-p.h; p.vy=0; p.onGround=true; }
-  });
-  flowers.forEach(fl=>{
-    if (fl.bounce>0) fl.bounce -= dt*4;
-    const top = fl.y - 18;
-    if (p.vy>0 && p.x+p.w-10>fl.x-26 && p.x+10<fl.x+26 &&
-        p.y+p.h>=top && p.y+p.h<=top+26) {
-      p.y = top-p.h; p.vy = -23; p.onGround=false; fl.bounce=1; sBoop();
-      emit(fl.x-cam, top, 8, ['#c77dff','#e0aaff','#fff']);
-    }
-  });
+  lifts.forEach(lf=>{ lf.y=lf.baseY+(lf.topY-lf.baseY)*(0.5-0.5*Math.cos(time*0.6+lf.phase));
+    if(p.vy>=0&&p.x+p.w>lf.x-29&&p.x<lf.x+29&&p.y+p.h>=lf.y&&p.y+p.h<=lf.y+22){p.y=lf.y-p.h;p.vy=0;p.onGround=true;} });
 
-  // godisaffär KVILLETORGET – ät godis när man går förbi
-  if (!shop.ate && p.x+p.w>shop.x && p.x<shop.x+shop.w) {
-    shop.ate = true; score += 5; sStar();
-    showMsg('MUMS! Godis från KVILLETORGET! 🍭🍬 +5', 1600);
-    emit(p.x-cam+p.w/2, p.y+20, 16, ['#ff8ae0','#ffd83d','#7ec8ff','#ff5a5a']);
+  flowers.forEach(fl=>{ if(fl.bounce>0)fl.bounce-=dt*4; const top=fl.y-18;
+    if(p.vy>0&&p.x+p.w-10>fl.x-26&&p.x+10<fl.x+26&&p.y+p.h>=top&&p.y+p.h<=top+26){p.y=top-p.h;p.vy=-23;p.onGround=false;fl.bounce=1;sBoop();emit(fl.x-cam,top,8,['#c77dff','#e0aaff','#fff']);} });
+
+  // butik/skylt: bana 1 = godis (poäng), bana 2 = bara skylt
+  if(shop.type==='candy'&&!shop.ate&&p.x+p.w>shop.x&&p.x<shop.x+shop.w){
+    shop.ate=true;score+=5;sStar();showMsg('MUMS! Godis från KVILLETORGET! 🍭🍬 +5',1600);
+    emit(p.x-cam+p.w/2,p.y+20,16,['#ff8ae0','#ffd83d','#7ec8ff','#ff5a5a']);
   }
 
-  stars.forEach(s=>{
-    s.t += dt*3;
-    if (!s.got && Math.abs(p.x+p.w/2-s.x)<34 && Math.abs(p.y+p.h/2-(s.y+Math.sin(s.t)*8))<44) {
-      s.got = true; score++; sStar();
-      emit(s.x-cam, s.y, 10, ['#ff5a6e','#2eb85c','#fff','#ff7eb3']);
-      if (score%5===0) showMsg('Mums! 🍦 '+score, 1000);
-    }
+  collects.forEach(s=>{ s.t+=dt*3;
+    if(!s.got&&Math.abs(p.x+p.w/2-s.x)<34&&Math.abs(p.y+p.h/2-(s.y+Math.sin(s.t)*8))<44){
+      s.got=true;score++;sStar();
+      emit(s.x-cam,s.y,10, s.flavor==='ball'?['#e8772e','#fff','#1a1a1a']:['#ff5a6e','#2eb85c','#fff','#ff7eb3']);
+      if(score%5===0)showMsg(levelNum===1?'Mums! 🍦 '+score:'Snyggt! 🏀 '+score,1000);
+    } });
+
+  checkpoints.forEach(c=>{ if(!c.hit&&p.x>c.x){c.hit=true;respawnX=c.x;showMsg('Checkpoint! 🚩',1000);sBoop();} });
+
+  if(invuln<=0)poops.forEach(o=>{ if(p.x+p.w-8>o.x&&p.x+8<o.x+o.w&&p.y+p.h>o.y+8)respawn(); });
+
+  // fiender (skunk eller flodhäst)
+  enemies.forEach(s=>{
+    if(s.dead){s.deadT+=dt;return;}
+    s.x+=s.dir*1.4; if(s.x<s.min||s.x>s.max)s.dir*=-1;
+    const dist=Math.abs(p.x-s.x);
+    if(dist<650){ s.fartT-=dt;
+      if(s.fartT<=0){ s.fartT=3.5+Math.random()*3; const fdir=p.x<s.x?-1:1;
+        if(s.type==='skunk'){ farts.push({x:s.x+(fdir>0?s.w:-10),y:GROUND-26,w:30,h:24,dir:fdir,life:4,t:0,kind:'fart'}); emit(s.x-cam+s.w/2,s.y+s.h-6,6,['#a8e063','#c7f08a','#8fd14f'],4,4); if(dist<550)sFart(); }
+        else { farts.push({x:s.x+(fdir>0?s.w:-10),y:GROUND-30,w:36,h:28,dir:fdir,life:3.5,t:0,kind:'burp'}); emit(s.x-cam+s.w/2,s.y+s.h-10,7,['#6fcf4a','#9fe06a','#4fa030'],5,4); if(dist<550)sBurp(); s.gape=0.6; }
+      } }
+    if(s.gape>0)s.gape-=dt;
+    const hitX=p.x+p.w-8>s.x&&p.x+8<s.x+s.w;
+    const stomp=hitX&&p.vy>2&&p.y+p.h>s.y&&p.y+p.h<s.y+28;
+    if(stomp){ s.dead=true;p.vy=-10;sBoop();score+=2;
+      emit(s.x-cam+s.w/2,s.y,12, s.type==='skunk'?['#fff','#222','#aaa']:['#8a6fc7','#fff','#b9a0e8']);
+      showMsg(s.type==='skunk'?'Boing! 🦨💨':'Boing! 🦛💚',900);
+    } else if(invuln<=0&&hitX&&p.y+p.h>s.y+10&&p.y<s.y+s.h)respawn();
   });
 
-  checkpoints.forEach(c=>{
-    if (!c.hit && p.x > c.x) { c.hit = true; respawnX = c.x; showMsg('Checkpoint! 🚩',1000); sBoop(); }
-  });
+  // pruttar/rapar som glider längs marken
+  farts.forEach(f=>{ f.x+=f.dir*2.6; f.t+=dt; f.life-=dt;
+    if(invuln<=0&&f.life>0&&p.x+p.w-10>f.x&&p.x+10<f.x+f.w&&p.y+p.h>GROUND-f.h-4){ f.life=0; respawn(); showMsg(f.kind==='burp'?'Usch, en grön rap! 🦛💚🤢':'Usch, en prutt! 💨🤢'); } });
+  farts=farts.filter(f=>f.life>0);
 
-  if (invuln<=0) poops.forEach(o=>{
-    if (p.x+p.w-8>o.x && p.x+8<o.x+o.w && p.y+p.h>o.y+8) respawn();
-  });
+  // frisbees
+  frisbees.forEach(fr=>{ fr.x+=fr.dir*8.5; fr.t+=dt; fr.spin+=dt*20;
+    enemies.forEach(s=>{ if(!s.dead&&Math.abs(fr.x-(s.x+s.w/2))<34&&Math.abs(fr.y-(s.y+s.h/2))<36){ s.dead=true;fr.t=99;score+=2;sBoop(); emit(s.x-cam+s.w/2,s.y,12,['#5a96ff','#fff','#222']); showMsg('PANG! 🥏',800); } });
+    if(!boss.dead&&boss.hurt<=0&&fr.x>boss.x+15&&fr.x<boss.x+boss.w-15&&fr.y>boss.y&&fr.y<boss.y+boss.h){
+      fr.t=99;boss.hp--;boss.hurt=0.8;boss.size*=0.85;sBoop(); emit(boss.x-cam+boss.w/2,boss.y+30,14,['#5a96ff','#8a5a2b','#fff']);
+      if(boss.hp<=0){boss.dead=true;sWin();showMsg(levelNum===1?'PFFFFT! 💨🚽 Spring till Karlatornet! 🏢🚩':'BÄÄÄH! 🦙 Spring till mål! 🚩',2200);} else showMsg('PANG! 🥏',800);
+    } });
+  frisbees=frisbees.filter(fr=>fr.t<3&&fr.x>cam-60&&fr.x<cam+W+60);
 
-  skunks.forEach(s=>{
-    if (s.dead) { s.deadT += dt; return; }
-    s.x += s.dir * 1.4;
-    if (s.x<s.min||s.x>s.max) s.dir*=-1;
-    const dist = Math.abs(p.x - s.x);
-    if (dist < 650) {
-      s.fartT -= dt;
-      if (s.fartT <= 0) {
-        s.fartT = 3.5 + Math.random()*3;
-        const fdir = p.x < s.x ? -1 : 1;
-        farts.push({ x: s.x + (fdir>0 ? s.w : -10), y: GROUND-26, w:30, h:24, dir:fdir, life:4, t:0 });
-        emit(s.x-cam+s.w/2, s.y+s.h-6, 6, ['#a8e063','#c7f08a','#8fd14f'], 4, 4);
-        if (dist < 550) sFart();
+  // himmelsföremål: svamp (bana 1) eller basketboll (bana 2)
+  skyTimer-=dt;
+  if(skyTimer<=0&&state==='play'){ skyTimer=(levelNum===1?4:3)+Math.random()*4;
+    skyItems.push({x:cam+150+Math.random()*(W-300),y:-40,vy:1.6+Math.random()*0.9,sway:Math.random()*6,got:false}); }
+  skyItems.forEach(m=>{ m.y+=m.vy; m.sway+=dt*2; const mx=m.x+Math.sin(m.sway)*1.5;
+    if(!m.got&&Math.abs(p.x+p.w/2-mx)<42&&Math.abs(p.y+p.h/2-m.y)<48){ m.got=true;score+=3;sStar();
+      emit(mx-cam,m.y,16, levelNum===1?['#e8201b','#fff','#ff9eb0']:['#e8772e','#fff','#1a1a1a']);
+      showMsg(levelNum===1?'Svamp-kompis! 🍄 +3':'Basket! 🏀 +3',1100); } });
+  skyItems=skyItems.filter(m=>!m.got&&m.y<GROUND-10);
+
+  // boss-rörelse
+  if(!boss.dead){
+    boss.jumpT-=dt; const near=p.x>boss.x-500;
+    if(near){ boss.dir = p.x < boss.x ? -1 : 1;
+      if(boss.type==='poo'){ boss.x+=(p.x<boss.x?-1:1)*0.8;
+        if(boss.jumpT<=0&&boss.onGround){boss.vy=-9;boss.onGround=false;boss.jumpT=1.6+Math.random()*1.4;} }
+      else { // lama spottar beige projektiler – som big boss
+        boss.spitT-=dt;
+        if(boss.spitT<=0){ boss.spitT=1.8+Math.random()*1.2; sSpit();
+          const dx=(p.x-boss.x); const dir=dx<0?-1:1;
+          projectiles.push({x:boss.x+boss.w/2,y:boss.y+30,vx:dir*5.5,vy:-3,t:0});
+          emit(boss.x-cam+boss.w/2,boss.y+30,6,['#d8c9a0','#c2b189','#efe6cf']);
+        }
       }
     }
-    const hitX = p.x+p.w-8>s.x && p.x+8<s.x+s.w;
-    const stomp = hitX && p.vy>2 && p.y+p.h>s.y && p.y+p.h<s.y+26;
-    if (stomp) {
-      s.dead = true; p.vy = -10; sBoop(); score+=2;
-      emit(s.x-cam+s.w/2, s.y, 12, ['#fff','#222','#aaa']);
-      showMsg('Boing! 🦨💨', 900);
-    } else if (invuln<=0 && hitX && p.y+p.h>s.y+10 && p.y<s.y+s.h) respawn();
-  });
+    boss.vy+=30*dt; boss.y+=boss.vy;
+    if(boss.y+boss.h>=GROUND){boss.y=GROUND-boss.h;boss.vy=0;boss.onGround=true;}
+    if(boss.hurt>0)boss.hurt-=dt;
+    const hb={x:boss.x+15,w:boss.w-30};
+    const hitX=p.x+p.w-6>hb.x&&p.x+6<hb.x+hb.w;
+    const stomp=hitX&&p.vy>2&&p.y+p.h>boss.y&&p.y+p.h<boss.y+50;
+    if(stomp&&boss.hurt<=0){ boss.hp--;boss.hurt=0.8;boss.size*=0.85;p.vy=-12;sBoop();
+      emit(boss.x-cam+boss.w/2,boss.y+30,16, boss.type==='poo'?['#8a5a2b','#b07a3f','#6b4423']:['#f0e6d2','#d8c9a0','#fff']);
+      if(boss.hp>0)showMsg(['SPLAT! 💥','Igen! 💪','En gång till!'][3-boss.hp-1]||'PANG!',1000);
+      if(boss.hp<=0){boss.dead=true;sWin();showMsg(levelNum===1?'PFFFFT! 💨🚽 Spring till Karlatornet! 🏢🚩':'BÄÄÄH! 🦙 Spring till mål! 🚩',2200);}
+    } else if(invuln<=0&&!stomp&&hitX&&p.y+p.h>boss.y+40&&p.y<boss.y+boss.h&&boss.hurt<=0)respawn();
+  } else { boss.deadT+=dt; if(boss.deadT<2)emit(boss.x-cam+boss.w/2,boss.y+boss.h/2,2,['#8a5a2b','#fff','#7ec8ff']); }
 
-  farts.forEach(f=>{
-    f.x += f.dir * 2.6;
-    f.t += dt; f.life -= dt;
-    if (invuln<=0 && f.life>0 &&
-        p.x+p.w-10>f.x && p.x+10<f.x+f.w &&
-        p.y+p.h>GROUND-f.h-4) {
-      f.life = 0;
-      respawn();
-      showMsg('Usch, en prutt! 💨🤢');
-    }
-  });
-  farts = farts.filter(f=>f.life>0);
+  // beige lama-spott
+  projectiles.forEach(pr=>{ pr.x+=pr.vx; pr.vy+=22*dt; pr.y+=pr.vy; pr.t+=dt;
+    if(invuln<=0&&Math.abs(p.x+p.w/2-pr.x)<26&&Math.abs(p.y+p.h/2-pr.y)<32){ pr.t=99; respawn(); showMsg('Beige lama-spott! 🦙💦🤢'); } });
+  projectiles=projectiles.filter(pr=>pr.t<4&&pr.y<GROUND+10);
 
-  // frisbees flyger och slår ut skunkar (och skadar bossen)
-  frisbees.forEach(fr=>{
-    fr.x += fr.dir * 8.5; fr.t += dt; fr.spin += dt*20;
-    skunks.forEach(s=>{
-      if (!s.dead && Math.abs(fr.x-(s.x+s.w/2))<32 && Math.abs(fr.y-(s.y+s.h/2))<34) {
-        s.dead = true; fr.t = 99; score += 2; sBoop();
-        emit(s.x-cam+s.w/2, s.y, 12, ['#5a96ff','#fff','#222']);
-        showMsg('PANG! 🥏🦨', 800);
-      }
-    });
-    if (!boss.dead && boss.hurt<=0 && fr.x>boss.x+15 && fr.x<boss.x+boss.w-15 &&
-        fr.y>boss.y && fr.y<boss.y+boss.h) {
-      fr.t = 99; boss.hp--; boss.hurt=0.8; boss.size*=0.85; sBoop();
-      emit(boss.x-cam+boss.w/2, boss.y+30, 14, ['#5a96ff','#8a5a2b','#fff']);
-      if (boss.hp<=0) { boss.dead=true; sWin(); showMsg('PFFFFT! 💨🚽 Spring till Karlatornet! 🏢🚩',2200); }
-      else showMsg('PANG! 🥏', 800);
-    }
-  });
-  frisbees = frisbees.filter(fr=> fr.t<3 && fr.x>cam-60 && fr.x<cam+W+60);
+  // målflagga (Karlatornet bana 1 / vanlig mål-stång bana 2)
+  if(boss.dead&&state==='play'&&p.x+p.w>flag.x){ flag.pulled+=dt*0.8;
+    if(flag.pulled>=1){ flag.pulled=1; state='winning';
+      emit(flag.x-cam,200,30,['#ffd83d','#ff5a5a','#3fbf5a','#5a8aff','#ff8ae0'],10,12); } }
+  if(state==='winning'){ boss.deadT+=dt;
+    if(boss.deadT>1.2){ state='won'; sWin();
+      for(let i=0;i<5;i++)setTimeout(()=>emit(200+Math.random()*500,100+Math.random()*150,25,['#ff5a5a','#ffd83d','#3fbf5a','#5a8aff','#ff8ae0'],10,12),i*350); } }
 
-  // svamp-gosedjur dalar ner från himlen då och då 🍄
-  mushTimer -= dt;
-  if (mushTimer<=0 && state==='play') {
-    mushTimer = 4 + Math.random()*4;
-    mushrooms.push({ x: cam + 150 + Math.random()*(W-300), y:-40, vy:1.6+Math.random()*0.8, sway:Math.random()*6, got:false });
-  }
-  mushrooms.forEach(m=>{
-    m.y += m.vy; m.sway += dt*2;
-    const mx = m.x + Math.sin(m.sway)*1.5;
-    if (!m.got && Math.abs(p.x+p.w/2-mx)<40 && Math.abs(p.y+p.h/2-m.y)<46) {
-      m.got = true; score += 3; sStar();
-      emit(mx-cam, m.y, 16, ['#e8201b','#fff','#ff9eb0']);
-      showMsg('Svamp-kompis! 🍄 +3', 1100);
-    }
-  });
-  mushrooms = mushrooms.filter(m=> !m.got && m.y < GROUND-10);
+  particles.forEach(pa=>{pa.x+=pa.vx;pa.y+=pa.vy;pa.vy+=0.35;pa.life-=dt*1.2;});
+  particles=particles.filter(pa=>pa.life>0);
 
-  if (!boss.dead) {
-    boss.jumpT -= dt;
-    const near = p.x > boss.x-450;
-    if (near) {
-      boss.x += boss.dir*1.1;
-      if (boss.x < 5150) boss.dir = 1;
-      if (boss.x > 5470) boss.dir = -1;
-      if (boss.jumpT<=0 && boss.onGround) { boss.vy=-9; boss.onGround=false; boss.jumpT=1.6+Math.random()*1.4; }
-    }
-    boss.vy += 30*dt; boss.y += boss.vy;
-    if (boss.y+boss.h>=GROUND) { boss.y=GROUND-boss.h; boss.vy=0; boss.onGround=true; }
-    if (boss.hurt>0) boss.hurt-=dt;
-    const hb = { x:boss.x+15, w:boss.w-30 };
-    const hitX = p.x+p.w-6>hb.x && p.x+6<hb.x+hb.w;
-    const stomp = hitX && p.vy>2 && p.y+p.h>boss.y && p.y+p.h<boss.y+50;
-    if (stomp && boss.hurt<=0) {
-      boss.hp--; boss.hurt=0.8; boss.size*=0.85; p.vy=-12; sBoop();
-      emit(boss.x-cam+boss.w/2, boss.y+30, 16, ['#8a5a2b','#b07a3f','#6b4423']);
-      const t = ['SPLAT! 💥','Igen! 💪','En gång till!'];
-      showMsg(boss.hp>0 ? t[3-boss.hp-1]||'SPLAT!' : '', 1000);
-      if (boss.hp<=0) {
-        boss.dead = true; sWin();
-        showMsg('PFFFFT! 💨🚽 Spring till Karlatornet! 🏢🚩', 2200);
-      }
-    } else if (invuln<=0 && !stomp && hitX && p.y+p.h>boss.y+40 && p.y<boss.y+boss.h && boss.hurt<=0) respawn();
-  } else {
-    boss.deadT += dt;
-    if (boss.deadT<2) emit(boss.x-cam+boss.w/2, boss.y+boss.h/2, 2, ['#8a5a2b','#fff','#7ec8ff']);
-  }
-
-  // Karlatornets flagga – dra ner den (gå fram till tornet) för att vinna! 🏢🚩
-  if (boss.dead && state==='play' && p.x+p.w > flag.x) {
-    flag.pulled += dt*0.8;
-    if (flag.pulled >= 1) {
-      flag.pulled = 1; state='winning';
-      emit(flag.x-cam, 200, 30, ['#ffd83d','#ff5a5a','#3fbf5a','#5a8aff','#ff8ae0'], 10, 12);
-    }
-  }
-  if (state==='winning') {
-    boss.deadT += dt;
-    if (boss.deadT>1.2) {
-      state='won'; sWin();
-      for (let i=0;i<5;i++) setTimeout(()=>{
-        emit(200+Math.random()*500, 100+Math.random()*150, 25, ['#ff5a5a','#ffd83d','#3fbf5a','#5a8aff','#ff8ae0'], 10, 12);
-      }, i*350);
-    }
-  }
-
-  particles.forEach(pa=>{ pa.x+=pa.vx; pa.y+=pa.vy; pa.vy+=0.35; pa.life-=dt*1.2; });
-  particles = particles.filter(pa=>pa.life>0);
-
-  cam += ((p.x - 280) - cam)*0.1;
-  if (cam<0) cam=0;
-  if (cam>LEVEL_END-W+100) cam=LEVEL_END-W+100;
-
-  hud.textContent = '🍦 ' + score;
+  cam+=((p.x-280)-cam)*0.1; if(cam<0)cam=0; if(cam>LEVEL_END-W+100)cam=LEVEL_END-W+100;
+  hud.textContent=(levelNum===1?'🍦 ':'🏀 ')+score;
 }
 
 // ---------- rendering ----------
-function draw() {
-  const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#7ec8ff'); g.addColorStop(1,'#c8f0ff');
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-  ctx.font='60px serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  ctx.fillText('🌞', 790, 80);
+function draw(){
+  const sky1=levelNum===1?'#7ec8ff':'#9ad4f0', sky2=levelNum===1?'#c8f0ff':'#d8f3e8';
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,sky1); g.addColorStop(1,sky2);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  ctx.font='60px serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic'; ctx.fillText('🌞',790,80);
   ctx.font='50px serif';
-  clouds.forEach(c=>{ const x=(c.x-cam*0.4)%(LEVEL_END); if(x>-80&&x<W+80) { ctx.save(); ctx.translate(x,c.y); ctx.scale(c.s,c.s); ctx.fillText('☁️',0,0); ctx.restore(); }});
-  ctx.fillStyle = '#a8e063';
-  for (let i=0;i<8;i++) {
-    const hx = (i*900 - cam*0.6)%(LEVEL_END);
-    ctx.beginPath(); ctx.arc(hx, GROUND+60, 160, Math.PI, 0); ctx.fill();
-  }
-  ctx.fillStyle = '#5fc24e'; ctx.fillRect(0, GROUND, W, H-GROUND);
-  ctx.fillStyle = '#8a5a2b'; ctx.fillRect(0, GROUND+22, W, H-GROUND);
+  clouds.forEach(c=>{ const x=(c.x-cam*0.4)%(LEVEL_END); if(x>-80&&x<W+80){ctx.save();ctx.translate(x,c.y);ctx.scale(c.s,c.s);ctx.fillText('☁️',0,0);ctx.restore();} });
+  // kullar
+  ctx.fillStyle=levelNum===1?'#a8e063':'#8fd14f';
+  for(let i=0;i<8;i++){ const hx=(i*900-cam*0.6)%(LEVEL_END); ctx.beginPath(); ctx.arc(hx,GROUND+60,160,Math.PI,0); ctx.fill(); }
+  // mark
+  ctx.fillStyle=levelNum===1?'#5fc24e':'#e8d59a'; ctx.fillRect(0,GROUND,W,H-GROUND); // bana2 = sandfärgad lekpark
+  ctx.fillStyle=levelNum===1?'#8a5a2b':'#d4be7e'; ctx.fillRect(0,GROUND+22,W,H-GROUND);
   ctx.font='22px serif';
-  for (let i=0;i<40;i++) {
-    const fx = i*150 - cam; if (fx>-30&&fx<W+30) ctx.fillText(['🌸','🌼','🌷'][i%3], fx, GROUND+18);
+  for(let i=0;i<40;i++){ const fx=i*150-cam; if(fx>-30&&fx<W+30)ctx.fillText(levelNum===1?['🌸','🌼','🌷'][i%3]:['🌳','🪁','🌻'][i%3],fx,GROUND+18); }
+
+  // bana 2: blåval-rutschkana som hinderbana
+  if(levelNum===2){
+    const wx=3950-cam;
+    if(wx>-300&&wx<W+200){
+      // stor blå val med rutschkana-svans
+      ctx.fillStyle='#3a86c8';
+      ctx.beginPath(); ctx.ellipse(wx,GROUND-50,130,70,0,0,7); ctx.fill();
+      ctx.fillStyle='#bfe4fb'; ctx.beginPath(); ctx.ellipse(wx-20,GROUND-30,90,40,0,0,Math.PI); ctx.fill();
+      // huvud/öga
+      ctx.fillStyle='#2d6fa8'; ctx.beginPath(); ctx.arc(wx-110,GROUND-55,38,0,7); ctx.fill();
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(wx-120,GROUND-65,7,0,7); ctx.fill();
+      ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(wx-120,GROUND-65,3.5,0,7); ctx.fill();
+      // vattenspruta
+      ctx.fillStyle='#bfe4fb'; ctx.beginPath(); ctx.ellipse(wx+10,GROUND-128,9,20,0,0,7); ctx.fill();
+      // rutschkana-ramp (svans)
+      ctx.strokeStyle='#ffd83d'; ctx.lineWidth=10; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(wx+80,GROUND-100); ctx.quadraticCurveTo(wx+160,GROUND-90,wx+150,GROUND); ctx.stroke();
+      ctx.fillStyle='#5a3a1a'; ctx.font='bold 13px Comic Sans MS'; ctx.textAlign='center'; ctx.fillText('🐳 valrutschkana',wx,GROUND-130);
+    }
   }
-  platforms.forEach(pl=>{
-    const x = pl.x-cam; if (x<-200||x>W+200) return;
-    // brungrön trappstegs-platta
-    ctx.fillStyle = '#8a6a2b'; ctx.beginPath(); ctx.roundRect(x,pl.y,pl.w,pl.h,8); ctx.fill();
-    ctx.fillStyle = '#5fc24e'; ctx.beginPath(); ctx.roundRect(x,pl.y,pl.w,9,6); ctx.fill();
-    // små grässtrån på toppen
-    ctx.strokeStyle='#3f9c4f'; ctx.lineWidth=2;
-    for(let i=8;i<pl.w-4;i+=16){ ctx.beginPath(); ctx.moveTo(x+i,pl.y+2); ctx.lineTo(x+i-2,pl.y-5); ctx.stroke(); }
-  });
 
-  // glasshissar som åker upp mot himlen 🍦
-  if (lifts) lifts.forEach(lf=>{
-    const x = lf.x-cam; if (x<-80||x>W+80) return;
-    // svag ledstråle upp mot himlen
-    ctx.strokeStyle='rgba(255,255,255,0.4)'; ctx.lineWidth=2; ctx.setLineDash([6,8]);
-    ctx.beginPath(); ctx.moveTo(x, lf.topY-10); ctx.lineTo(x, lf.baseY); ctx.stroke();
-    ctx.setLineDash([]);
-    // glassplattform (en stor glasstrut som plattform)
-    ctx.fillStyle='#f7d9a0';
-    ctx.beginPath(); ctx.moveTo(x-30, lf.y); ctx.lineTo(x+30, lf.y); ctx.lineTo(x, lf.y+34); ctx.closePath(); ctx.fill();
-    // våffelmönster
-    ctx.strokeStyle='#c99a5b'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(x-18,lf.y+8); ctx.lineTo(x-6,lf.y+30); ctx.moveTo(x,lf.y+6); ctx.lineTo(x,lf.y+34);
-    ctx.moveTo(x+18,lf.y+8); ctx.lineTo(x+6,lf.y+30); ctx.stroke();
-    // glasskula på toppen man står på
-    ctx.fillStyle='#ff8ad0';
-    ctx.beginPath(); ctx.arc(x, lf.y-2, 32, Math.PI, 0); ctx.fill();
-    ctx.fillStyle='#ffd1ec';
-    ctx.beginPath(); ctx.arc(x-8, lf.y-8, 8, 0, 7); ctx.fill();
-    ctx.font='16px serif'; ctx.textAlign='center'; ctx.fillText('🍦', x, lf.y-30);
-  });
+  // plattformar (trappor)
+  platforms.forEach(pl=>{ const x=pl.x-cam; if(x<-200||x>W+200)return;
+    ctx.fillStyle=levelNum===1?'#8a6a2b':'#c89b5a'; ctx.beginPath(); ctx.roundRect(x,pl.y,pl.w,pl.h,8); ctx.fill();
+    ctx.fillStyle=levelNum===1?'#5fc24e':'#7fb04a'; ctx.beginPath(); ctx.roundRect(x,pl.y,pl.w,9,6); ctx.fill();
+    ctx.strokeStyle='#3f9c4f'; ctx.lineWidth=2; for(let i=8;i<pl.w-4;i+=16){ctx.beginPath();ctx.moveTo(x+i,pl.y+2);ctx.lineTo(x+i-2,pl.y-5);ctx.stroke();} });
 
-  ctx.font='42px serif';
-  checkpoints.forEach(c=>{ const x=c.x-cam; if(x>-50&&x<W+50) ctx.fillText(c.hit?'🚩':'⚐', x, GROUND-6); });
+  // hissar
+  lifts.forEach(lf=>{ const x=lf.x-cam; if(x<-80||x>W+80)return;
+    ctx.strokeStyle='rgba(255,255,255,0.4)';ctx.lineWidth=2;ctx.setLineDash([6,8]);
+    ctx.beginPath();ctx.moveTo(x,lf.topY-10);ctx.lineTo(x,lf.baseY);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#f7d9a0'; ctx.beginPath();ctx.moveTo(x-30,lf.y);ctx.lineTo(x+30,lf.y);ctx.lineTo(x,lf.y+34);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#c99a5b';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.moveTo(x-18,lf.y+8);ctx.lineTo(x-6,lf.y+30);ctx.moveTo(x,lf.y+6);ctx.lineTo(x,lf.y+34);ctx.moveTo(x+18,lf.y+8);ctx.lineTo(x+6,lf.y+30);ctx.stroke();
+    ctx.fillStyle='#ff8ad0'; ctx.beginPath();ctx.arc(x,lf.y-2,32,Math.PI,0);ctx.fill();
+    ctx.fillStyle='#ffd1ec'; ctx.beginPath();ctx.arc(x-8,lf.y-8,8,0,7);ctx.fill();
+    ctx.font='16px serif';ctx.textAlign='center';ctx.fillText('🍦',x,lf.y-30); });
 
-  // godisaffär KVILLETORGET
-  (function(){
-    const x = shop.x-cam; if (x<-260||x>W+40) return;
-    const sw = shop.w, sh = 150, sy = GROUND-sh;
-    // husvägg
-    ctx.fillStyle = '#ffe0ec'; ctx.fillRect(x, sy, sw, sh);
-    // randig markis
-    for (let i=0;i<sw/26;i++){ ctx.fillStyle = i%2?'#ff5a8a':'#fff'; ctx.fillRect(x+i*26, sy, 26, 22); }
-    // skylt
-    ctx.fillStyle = '#7a2d52'; ctx.beginPath(); ctx.roundRect(x+10, sy-40, sw-20, 34, 8); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.font='bold 22px Comic Sans MS, sans-serif'; ctx.textAlign='center';
-    ctx.fillText('🍭 KVILLETORGET 🍬', x+sw/2, sy-15);
-    // fönster med godis
-    ctx.fillStyle = '#bfe9ff'; ctx.fillRect(x+20, sy+34, sw-40, 70);
-    ctx.font='30px serif'; ctx.textAlign='left';
-    ['🍬','🍭','🍫','🧁','🍩','🍡'].forEach((e,i)=> ctx.fillText(e, x+30+i*((sw-60)/6), sy+78));
-    // dörr
-    ctx.fillStyle = '#7a4a2b'; ctx.fillRect(x+sw/2-22, sy+110, 44, sh-110);
-    ctx.fillStyle = '#ffd83d'; ctx.beginPath(); ctx.arc(x+sw/2+12, sy+135, 3, 0, 7); ctx.fill();
-  })();
+  // PLIKTA-skylt (bana2) eller KVILLETORGET godisbutik (bana1)
+  if(shop.type==='candy'){
+    const x=shop.x-cam; if(x>-260&&x<W+40){ const sw=shop.w,sh=150,sy=GROUND-sh;
+      ctx.fillStyle='#ffe0ec';ctx.fillRect(x,sy,sw,sh);
+      for(let i=0;i<sw/26;i++){ctx.fillStyle=i%2?'#ff5a8a':'#fff';ctx.fillRect(x+i*26,sy,26,22);}
+      ctx.fillStyle='#7a2d52';ctx.beginPath();ctx.roundRect(x+10,sy-40,sw-20,34,8);ctx.fill();
+      ctx.fillStyle='#fff';ctx.font='bold 22px Comic Sans MS';ctx.textAlign='center';ctx.fillText('🍭 KVILLETORGET 🍬',x+sw/2,sy-15);
+      ctx.fillStyle='#bfe9ff';ctx.fillRect(x+20,sy+34,sw-40,70);
+      ctx.font='30px serif';ctx.textAlign='left'; ['🍬','🍭','🍫','🧁','🍩','🍡'].forEach((e,i)=>ctx.fillText(e,x+30+i*((sw-60)/6),sy+78));
+      ctx.fillStyle='#7a4a2b';ctx.fillRect(x+sw/2-22,sy+110,44,sh-110);
+      ctx.fillStyle='#ffd83d';ctx.beginPath();ctx.arc(x+sw/2+12,sy+135,3,0,7);ctx.fill(); }
+  } else if(shop.type==='sign'){
+    const x=shop.x-cam; if(x>-220&&x<W+40){ const sw=shop.w;
+      // stor PLIKTA LEKPARK-skylt på stolpar
+      ctx.fillStyle='#6b4423'; ctx.fillRect(x+14,GROUND-150,12,150); ctx.fillRect(x+sw-26,GROUND-150,12,150);
+      ctx.fillStyle='#ff8a3d'; ctx.beginPath(); ctx.roundRect(x,GROUND-200,sw,60,12); ctx.fill();
+      ctx.strokeStyle='#fff'; ctx.lineWidth=3; ctx.beginPath(); ctx.roundRect(x+6,GROUND-194,sw-12,48,9); ctx.stroke();
+      ctx.fillStyle='#fff'; ctx.font='bold 26px Comic Sans MS'; ctx.textAlign='center';
+      ctx.fillText('🛝 PLIKTA',x+sw/2,GROUND-170); ctx.font='bold 20px Comic Sans MS'; ctx.fillText('LEKPARK',x+sw/2,GROUND-150); }
+  }
 
-  // lila studs-blommor
-  flowers.forEach(fl=>{
-    const x = fl.x-cam; if (x<-50||x>W+50) return;
-    const squish = fl.bounce>0 ? fl.bounce*6 : 0;
-    // stjälk
-    ctx.strokeStyle='#3f9c4f'; ctx.lineWidth=6; ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(x, GROUND); ctx.lineTo(x, fl.y-6+squish); ctx.stroke();
-    // rund lila kudde
-    ctx.fillStyle='#9d4edd';
-    ctx.beginPath(); ctx.ellipse(x, fl.y-16+squish, 28, 18-squish*0.5, 0, 0, 7); ctx.fill();
-    ctx.fillStyle='#c77dff';
-    ctx.beginPath(); ctx.ellipse(x, fl.y-20+squish, 22, 13-squish*0.4, 0, 0, 7); ctx.fill();
-    // rosa prickar
-    ctx.fillStyle='#ff9ed8';
-    [[-12,-2],[8,-4],[0,2],[-4,-8],[13,3]].forEach(d=>{
-      ctx.beginPath(); ctx.arc(x+d[0], fl.y-18+d[1]+squish, 3.2, 0, 7); ctx.fill();
-    });
-  });
+  ctx.font='42px serif'; ctx.textAlign='center';
+  checkpoints.forEach(c=>{ const x=c.x-cam; if(x>-50&&x<W+50)ctx.fillText(c.hit?'🚩':'⚐',x,GROUND-6); });
 
-  // glassar att samla 🍉🍓
-  stars.forEach(s=>{
-    if (s.got) return;
-    const x = s.x-cam; if (x<-50||x>W+50) return;
-    ctx.save(); ctx.translate(x, s.y+Math.sin(s.t)*8);
-    if (s.flavor === 'melon') {
-      // vattenmelonglass på pinne
-      ctx.fillStyle='#6b4423'; ctx.fillRect(-2,8,4,16); // pinne
-      ctx.fillStyle='#2eb85c'; // grönt skal
-      ctx.beginPath(); ctx.arc(0,0,15,Math.PI,0); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,12,Math.PI,0); ctx.fill();
-      ctx.fillStyle='#ff5a6e'; ctx.beginPath(); ctx.arc(0,0,10,Math.PI,0); ctx.fill();
-      ctx.fillStyle='#222'; // kärnor
-      [[-5,-3],[3,-5],[6,-1],[-2,-7]].forEach(k=>{ ctx.beginPath(); ctx.arc(k[0],k[1],1.3,0,7); ctx.fill(); });
+  // collectibles: glass (bana1) / basket (bana2)
+  collects.forEach(s=>{ if(s.got)return; const x=s.x-cam; if(x<-50||x>W+50)return;
+    ctx.save(); ctx.translate(x,s.y+Math.sin(s.t)*8);
+    if(s.flavor==='ball'){ drawBasketball(ctx,15); }
+    else if(s.flavor==='melon'){
+      ctx.fillStyle='#6b4423';ctx.fillRect(-2,8,4,16);
+      ctx.fillStyle='#2eb85c';ctx.beginPath();ctx.arc(0,0,15,Math.PI,0);ctx.fill();
+      ctx.fillStyle='#fff';ctx.beginPath();ctx.arc(0,0,12,Math.PI,0);ctx.fill();
+      ctx.fillStyle='#ff5a6e';ctx.beginPath();ctx.arc(0,0,10,Math.PI,0);ctx.fill();
+      ctx.fillStyle='#222';[[-5,-3],[3,-5],[6,-1],[-2,-7]].forEach(k=>{ctx.beginPath();ctx.arc(k[0],k[1],1.3,0,7);ctx.fill();});
     } else {
-      // jordgubbs-Solero
-      ctx.fillStyle='#6b4423'; ctx.fillRect(-2,10,4,14); // pinne
-      ctx.fillStyle='#ff7eb3'; // rosa jordgubb utsida
-      ctx.beginPath(); ctx.moveTo(-12,-6); ctx.quadraticCurveTo(-14,12,0,14); ctx.quadraticCurveTo(14,12,12,-6);
-      ctx.quadraticCurveTo(0,-16,-12,-6); ctx.fill();
-      ctx.fillStyle='#fff3c0'; // gul kärna
-      ctx.beginPath(); ctx.ellipse(0,2,5,7,0,0,7); ctx.fill();
-      ctx.fillStyle='#ffd83d'; // frön
-      [[-7,0],[7,1],[-3,-4],[5,-3]].forEach(k=>{ ctx.beginPath(); ctx.arc(k[0],k[1],1,0,7); ctx.fill(); });
+      ctx.fillStyle='#6b4423';ctx.fillRect(-2,10,4,14);
+      ctx.fillStyle='#ff7eb3';ctx.beginPath();ctx.moveTo(-12,-6);ctx.quadraticCurveTo(-14,12,0,14);ctx.quadraticCurveTo(14,12,12,-6);ctx.quadraticCurveTo(0,-16,-12,-6);ctx.fill();
+      ctx.fillStyle='#fff3c0';ctx.beginPath();ctx.ellipse(0,2,5,7,0,0,7);ctx.fill();
+      ctx.fillStyle='#ffd83d';[[-7,0],[7,1],[-3,-4],[5,-3]].forEach(k=>{ctx.beginPath();ctx.arc(k[0],k[1],1,0,7);ctx.fill();});
     }
-    ctx.restore();
-  });
-  ctx.font='44px serif'; ctx.textAlign='left';
-  poops.forEach(o=>{ const x=o.x-cam; if(x>-60&&x<W+60) ctx.fillText('💩', x, o.y+o.h); });
-  farts.forEach(f=>{
-    const x = f.x-cam; if (x<-60||x>W+60) return;
-    ctx.save();
-    ctx.globalAlpha = Math.min(1, f.life);
-    ctx.fillStyle = 'rgba(168,224,99,0.4)';
-    ctx.beginPath(); ctx.arc(x+f.w/2, GROUND-14, 18+Math.sin(f.t*10)*3, 0, 7); ctx.fill();
-    ctx.font='34px serif'; ctx.textAlign='center';
-    ctx.translate(x+f.w/2, GROUND-2+Math.sin(f.t*12)*2);
-    ctx.scale(f.dir,1);
-    ctx.fillText('💨', 0, 0);
-    ctx.restore();
-  });
-  skunks.forEach(s=>{
-    const x = s.x-cam; if (x<-80||x>W+80) return;
-    if (s.dead) {
-      if (s.deadT<1) { ctx.save(); ctx.globalAlpha=1-s.deadT; ctx.font='40px serif'; ctx.fillText('💨', x, s.y+s.h-s.deadT*60); ctx.restore(); }
-      return;
+    ctx.restore(); });
+
+  // hinder: bajs (bana1) / sandhög (bana2)
+  ctx.textAlign='left';
+  poops.forEach(o=>{ const x=o.x-cam; if(x<-60||x>W+60)return;
+    if(o.sand){ ctx.fillStyle='#c9a85f'; ctx.beginPath(); ctx.moveTo(x,o.y+o.h); ctx.lineTo(x+o.w/2,o.y); ctx.lineTo(x+o.w,o.y+o.h); ctx.closePath(); ctx.fill();
+      ctx.fillStyle='#e0c483'; ctx.fillRect(x+o.w/2-2,o.y+3,4,o.h-3); }
+    else { ctx.font='44px serif'; ctx.fillText('💩',x,o.y+o.h); } });
+
+  // farts/rapar
+  farts.forEach(f=>{ const x=f.x-cam; if(x<-60||x>W+60)return; ctx.save(); ctx.globalAlpha=Math.min(1,f.life);
+    const col=f.kind==='burp'?'rgba(111,207,74,0.45)':'rgba(168,224,99,0.4)';
+    ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x+f.w/2,GROUND-14,(f.kind==='burp'?22:18)+Math.sin(f.t*10)*3,0,7); ctx.fill();
+    ctx.font=(f.kind==='burp'?'38px':'34px')+' serif'; ctx.textAlign='center';
+    ctx.translate(x+f.w/2,GROUND-2+Math.sin(f.t*12)*2); ctx.scale(f.dir,1); ctx.fillText('💨',0,0); ctx.restore(); });
+
+  // fiender
+  enemies.forEach(s=>{ const x=s.x-cam; if(x<-90||x>W+90)return;
+    if(s.dead){ if(s.deadT<1){ctx.save();ctx.globalAlpha=1-s.deadT;ctx.font='40px serif';ctx.textAlign='center';ctx.fillText('💨',x+s.w/2,s.y+s.h-s.deadT*60);ctx.restore();} return; }
+    ctx.save(); ctx.translate(x+s.w/2,s.y+s.h); ctx.scale(-s.dir,1);
+    if(s.type==='skunk'){ ctx.font='46px serif'; ctx.textAlign='center'; ctx.fillText('🦨',0,Math.sin(time*10+s.x)*2); }
+    else { // FLODHÄST som gapar
+      const gape=s.gape>0?1:0; ctx.font='52px serif'; ctx.textAlign='center';
+      ctx.fillText(gape?'🦛':'🦛',0,Math.sin(time*8+s.x)*2);
+      if(gape){ ctx.fillStyle='rgba(111,207,74,0.6)'; ctx.beginPath(); ctx.ellipse(22,-8,10,7,0,0,7); ctx.fill(); }
     }
-    ctx.save(); ctx.translate(x+s.w/2, s.y+s.h);
-    ctx.scale(-s.dir,1);
-    ctx.font='46px serif'; ctx.textAlign='center';
-    ctx.fillText('🦨', 0, Math.sin(time*10+s.x)*2);
-    ctx.restore();
-  });
+    ctx.restore(); });
+
   drawBoss();
-  if (boss.dead && boss.deadT>1.5) {
-    ctx.font='90px serif'; ctx.textAlign='center';
-    ctx.fillText('🚽', boss.x-cam+boss.w/2, GROUND);
-    if (boss.deadT<2.5) ctx.fillText('💨', boss.x-cam+boss.w/2, GROUND-80);
-  }
 
-  // KARLATORNET (Göteborgs skyskrapa) med målflagga 🏢🚩
-  if (flag) {
-    const tx = flag.x - cam;
-    if (tx>-200 && tx<W+260) {
-      const tw = 110, th = 340, ty = GROUND-th, tcx = flag.x+tw/2-cam;
-      // tornkropp – lutande modern skyskrapa
-      const grad = ctx.createLinearGradient(tx,0,tx+tw,0);
-      grad.addColorStop(0,'#6fb7e8'); grad.addColorStop(0.5,'#bfe4fb'); grad.addColorStop(1,'#5a9fd4');
-      ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.moveTo(tx, GROUND); ctx.lineTo(tx+14, ty); ctx.lineTo(tx+tw-6, ty+10); ctx.lineTo(tx+tw, GROUND);
-      ctx.closePath(); ctx.fill();
-      // fönsterrader
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
-      for (let r=0;r<14;r++) for (let c=0;c<4;c++) {
-        ctx.fillRect(tx+18+c*22, ty+20+r*22, 13, 13);
+  // beige lama-spott
+  projectiles.forEach(pr=>{ const x=pr.x-cam; ctx.fillStyle='#d8c9a0'; ctx.beginPath(); ctx.arc(x,pr.y,9,0,7); ctx.fill();
+    ctx.fillStyle='#c2b189'; ctx.beginPath(); ctx.arc(x-2,pr.y-2,4,0,7); ctx.fill(); });
+
+  // himmelsföremål
+  skyItems.forEach(m=>{ const mx=m.x+Math.sin(m.sway)*1.5-cam; if(mx<-50||mx>W+50)return;
+    ctx.save(); ctx.translate(mx,m.y);
+    if(levelNum===1){ ctx.rotate(Math.sin(m.sway)*0.12); drawMushroom(ctx,24); }
+    else { ctx.rotate(m.sway*0.5); drawBasketball(ctx,18); }
+    ctx.restore(); });
+
+  drawHero(player.x-cam,player.y);
+
+  frisbees.forEach(fr=>{ const x=fr.x-cam; ctx.save(); ctx.translate(x,fr.y); ctx.rotate(fr.spin);
+    ctx.fillStyle='#2f7bff'; ctx.beginPath(); ctx.ellipse(0,0,15,6,0,0,7); ctx.fill();
+    ctx.fillStyle='#7fb0ff'; ctx.beginPath(); ctx.ellipse(0,-2,10,3.5,0,0,7); ctx.fill(); ctx.restore(); });
+
+  particles.forEach(pa=>{ ctx.globalAlpha=Math.max(0,pa.life); ctx.fillStyle=pa.c; ctx.beginPath(); ctx.arc(pa.x,pa.y,pa.r,0,7); ctx.fill(); });
+  ctx.globalAlpha=1;
+
+  // mål: Karlatornet (bana1) eller mål-stång (bana2)
+  if(flag){ const tx=flag.x-cam;
+    if(tx>-200&&tx<W+260){
+      if(levelNum===1){
+        const tw=110,th=340,ty=GROUND-th,tcx=flag.x+tw/2-cam;
+        const grad=ctx.createLinearGradient(tx,0,tx+tw,0); grad.addColorStop(0,'#6fb7e8');grad.addColorStop(0.5,'#bfe4fb');grad.addColorStop(1,'#5a9fd4');
+        ctx.fillStyle=grad; ctx.beginPath(); ctx.moveTo(tx,GROUND);ctx.lineTo(tx+14,ty);ctx.lineTo(tx+tw-6,ty+10);ctx.lineTo(tx+tw,GROUND);ctx.closePath();ctx.fill();
+        ctx.fillStyle='rgba(255,255,255,0.55)'; for(let r=0;r<14;r++)for(let c=0;c<4;c++)ctx.fillRect(tx+18+c*22,ty+20+r*22,13,13);
+        ctx.fillStyle='#4a7fa5'; ctx.fillRect(tx+12,ty,tw-18,8);
+        const poleX=tcx,poleTop=ty-90,poleBot=ty;
+        ctx.strokeStyle='#888';ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(poleX,poleTop);ctx.lineTo(poleX,poleBot);ctx.stroke();
+        ctx.fillStyle='#ffd83d';ctx.beginPath();ctx.arc(poleX,poleTop,5,0,7);ctx.fill();
+        ctx.fillStyle='#5a3a1a';ctx.font='bold 12px Comic Sans MS';ctx.textAlign='center';ctx.fillText('KARLATORNET',poleX,GROUND-th-100);
+        const fy=poleTop+(poleBot-poleTop-40)*(flag.pulled||0);
+        ctx.fillStyle=CHARS[heroKey].spider?'#e0342f':'#3fbf5a';
+        ctx.beginPath();ctx.moveTo(poleX,fy);ctx.lineTo(poleX+50,fy+8);ctx.lineTo(poleX+50,fy+26);ctx.lineTo(poleX,fy+34);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='bold 13px Comic Sans MS';ctx.fillText(CHARS[heroKey].spider?'🕷️':'👑',poleX+25,fy+24);
+      } else {
+        // bana 2 mål-stång med klätterställning
+        const poleX=flag.x-cam,poleTop=GROUND-260,poleBot=GROUND;
+        ctx.strokeStyle='#888';ctx.lineWidth=6;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(poleX,poleTop);ctx.lineTo(poleX,poleBot);ctx.stroke();
+        ctx.fillStyle='#ffd83d';ctx.beginPath();ctx.arc(poleX,poleTop,7,0,7);ctx.fill();
+        const fy=poleTop+(poleBot-poleTop-50)*(flag.pulled||0);
+        ctx.fillStyle=CHARS[heroKey].spider?'#e0342f':'#3fbf5a';
+        ctx.beginPath();ctx.moveTo(poleX,fy);ctx.lineTo(poleX+54,fy+9);ctx.lineTo(poleX+54,fy+30);ctx.lineTo(poleX,fy+40);ctx.closePath();ctx.fill();
+        ctx.fillStyle='#fff';ctx.font='bold 14px Comic Sans MS';ctx.textAlign='center';ctx.fillText(CHARS[heroKey].spider?'🕷️':'👑',poleX+27,fy+27);
+        ctx.fillStyle='#5a3a1a';ctx.font='bold 13px Comic Sans MS';ctx.fillText('🛝 MÅL',poleX,poleTop-14);
       }
-      // tak
-      ctx.fillStyle = '#4a7fa5';
-      ctx.fillRect(tx+12, ty, tw-18, 8);
-      // flaggstång på taket
-      const poleX = tcx, poleTop = ty-90, poleBot = ty;
-      ctx.strokeStyle = '#888'; ctx.lineWidth = 4; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(poleX, poleTop); ctx.lineTo(poleX, poleBot); ctx.stroke();
-      ctx.fillStyle='#ffd83d'; ctx.beginPath(); ctx.arc(poleX, poleTop, 5, 0, 7); ctx.fill();
-      // flaggan glider ner när man drar
-      const fy = poleTop + (poleBot - poleTop - 40) * (flag.pulled||0);
-      ctx.fillStyle = CHARS[heroKey].spider ? '#e0342f' : '#3fbf5a';
-      ctx.beginPath();
-      ctx.moveTo(poleX, fy); ctx.lineTo(poleX+50, fy+8); ctx.lineTo(poleX+50, fy+26);
-      ctx.lineTo(poleX, fy+34); ctx.closePath(); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.font='bold 13px Comic Sans MS, sans-serif'; ctx.textAlign='center';
-      ctx.fillText(CHARS[heroKey].spider ? '🕷️' : '👑', poleX+25, fy+24);
     }
   }
-  // svamp-gosedjur som dalar ner 🍄
-  if (mushrooms) mushrooms.forEach(m=>{
-    const mx = m.x + Math.sin(m.sway)*1.5 - cam;
-    if (mx<-50||mx>W+50) return;
-    ctx.save(); ctx.translate(mx, m.y); ctx.rotate(Math.sin(m.sway)*0.12);
-    drawMushroom(ctx, 24);
-    ctx.restore();
-  });
 
-  drawHero(player.x-cam, player.y);
-  // blå frisbees
-  frisbees.forEach(fr=>{
-    const x = fr.x-cam;
-    ctx.save(); ctx.translate(x, fr.y); ctx.rotate(fr.spin);
-    ctx.fillStyle = '#2f7bff';
-    ctx.beginPath(); ctx.ellipse(0,0,15,6,0,0,7); ctx.fill();
-    ctx.fillStyle = '#7fb0ff';
-    ctx.beginPath(); ctx.ellipse(0,-2,10,3.5,0,0,7); ctx.fill();
-    ctx.restore();
-  });
-  particles.forEach(pa=>{
-    ctx.globalAlpha = Math.max(0,pa.life);
-    ctx.fillStyle = pa.c;
-    ctx.beginPath(); ctx.arc(pa.x, pa.y, pa.r, 0, 7); ctx.fill();
-  });
-  ctx.globalAlpha = 1;
-
-  if (state==='won') {
-    ctx.fillStyle = 'rgba(255,255,255,0.75)'; ctx.fillRect(0,0,W,H);
-    ctx.textAlign='center';
-    ctx.font='70px serif'; ctx.fillText(CHARS[heroKey].spider ? '🎉🕷️🎉' : '🎉🧢🎉', W/2, 150);
-    ctx.fillStyle='#ff5a2b'; ctx.font='bold 56px Comic Sans MS, sans-serif';
-    ctx.fillText(CHARS[heroKey].name + ' VINNER!', W/2, 230);
-    ctx.fillStyle='#2d5a8a'; ctx.font='bold 30px Comic Sans MS, sans-serif';
-    ctx.fillText('Bajsmonstret spolades ner i toaletten! 🚽💨', W/2, 285);
-    ctx.fillText('🍦 Du samlade ' + score + ' glassar!', W/2, 330);
-    ctx.fillStyle='#3fbf5a'; ctx.font='bold 26px Comic Sans MS, sans-serif';
-    ctx.fillText('Tryck HOPPA eller mellanslag för att spela igen!', W/2, 395);
-    if (keys.j) {
-      makeWorld(); respawnX=80; state='menu';
-      overlay.classList.remove('hidden');
-      btnL.classList.add('hidden'); btnR.classList.add('hidden'); btnJ.classList.add('hidden'); btnS.classList.add('hidden');
-      drawPreviews();
-    }
+  if(state==='won'){
+    ctx.fillStyle='rgba(255,255,255,0.78)';ctx.fillRect(0,0,W,H);ctx.textAlign='center';
+    ctx.font='66px serif';ctx.fillText(CHARS[heroKey].spider?'🎉🕷️🎉':'🎉🧢🎉',W/2,140);
+    ctx.fillStyle='#ff5a2b';ctx.font='bold 54px Comic Sans MS';ctx.fillText(CHARS[heroKey].name+' VINNER!',W/2,220);
+    ctx.fillStyle='#2d5a8a';ctx.font='bold 26px Comic Sans MS';
+    ctx.fillText(levelNum===1?'Bajsmonstret spolades ner i toaletten! 🚽💨':'Big Boss Lama är besegrad i Plikta! 🦙🛝',W/2,272);
+    ctx.fillText((levelNum===1?'🍦 ':'🏀 ')+'Du samlade '+score+(levelNum===1?' glassar!':' poäng!'),W/2,316);
+    if(levelNum===1){ ctx.fillStyle='#3f9c4f';ctx.font='bold 22px Comic Sans MS'; ctx.fillText('Prova Bana 2: Plikta lekpark! 🛝',W/2,356); }
+    ctx.fillStyle='#3fbf5a';ctx.font='bold 24px Comic Sans MS';ctx.fillText('Tryck HOPPA för att spela igen!',W/2,394);
+    if(keys.j){ makeWorld();respawnX=80;state='menu';overlay.classList.remove('hidden');
+      btnL.classList.add('hidden');btnR.classList.add('hidden');btnJ.classList.add('hidden');btnS.classList.add('hidden');drawPreviews(); }
   }
 }
 
-// ---------- loop ----------
-let last = 0;
-function loop(t) {
-  const dt = Math.min((t-last)/1000, 0.033); last = t;
-  if (state==='play'||state==='winning') update(dt);
-  if (state==='won') { time+=dt; particles.forEach(pa=>{pa.x+=pa.vx;pa.y+=pa.vy;pa.vy+=0.3;pa.life-=dt;}); particles=particles.filter(pa=>pa.life>0); }
-  draw();
-  requestAnimationFrame(loop);
-}
+let last=0;
+function loop(t){ const dt=Math.min((t-last)/1000,0.033); last=t;
+  if(state==='play'||state==='winning')update(dt);
+  if(state==='won'){ time+=dt; particles.forEach(pa=>{pa.x+=pa.vx;pa.y+=pa.vy;pa.vy+=0.3;pa.life-=dt;}); particles=particles.filter(pa=>pa.life>0); }
+  draw(); requestAnimationFrame(loop); }
 
-startBtn.addEventListener('click', () => {
-  overlay.classList.add('hidden');
-  btnL.classList.remove('hidden'); btnR.classList.remove('hidden'); btnJ.classList.remove('hidden');
-  btnS.classList.remove('hidden');
-  musicBtn.classList.remove('hidden');
-  makeWorld(); respawnX = 80; state = 'play';
-  beep(523,0.15,'square',0.1);
-  if (musicOn) startMusic();
-});
+startBtn.addEventListener('click',()=>{ overlay.classList.add('hidden');
+  btnL.classList.remove('hidden');btnR.classList.remove('hidden');btnJ.classList.remove('hidden');btnS.classList.remove('hidden');musicBtn.classList.remove('hidden');
+  makeWorld();respawnX=80;state='play';beep(523,0.15,'square',0.1); if(musicOn)startMusic(); });
 
-state = 'menu';
-makeWorld();
-requestAnimationFrame(loop);
+state='menu'; makeWorld(); requestAnimationFrame(loop);
 })();
 </script>
 </body>
