@@ -7,9 +7,14 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; overflow:hidden; background:#7ec8ff; font-family:'Comic Sans MS','Chalkboard SE',sans-serif; touch-action:none; }
-  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; transform-origin:center center; }
+  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; transform-origin:top left; }
   /* i stående läge på mobil: rotera hela spelet så det fyller skärmen liggande */
-  body.portrait #wrap { width:100vh; height:100vw; transform:rotate(90deg); }
+  body.portrait #wrap {
+    position:fixed;
+    top:0; left:100%;
+    width:100vh; height:100vw;
+    transform:rotate(90deg);
+  }
   canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
   .btn { position:absolute; bottom:18px; width:84px; height:84px; border-radius:50%; border:4px solid #fff;
     background:rgba(255,255,255,.35); font-size:38px; display:flex; align-items:center; justify-content:center;
