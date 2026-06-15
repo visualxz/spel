@@ -7,7 +7,9 @@
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { height:100%; overflow:hidden; background:#7ec8ff; font-family:'Comic Sans MS','Chalkboard SE',sans-serif; touch-action:none; }
-  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; transform-origin:center center; }
+  /* i stående läge på mobil: rotera hela spelet så det fyller skärmen liggande */
+  body.portrait #wrap { width:100vh; height:100vw; transform:rotate(90deg); }
   canvas#game { display:block; width:100%; height:100%; object-fit:contain; }
   .btn { position:absolute; bottom:18px; width:84px; height:84px; border-radius:50%; border:4px solid #fff;
     background:rgba(255,255,255,.35); font-size:38px; display:flex; align-items:center; justify-content:center;
@@ -56,8 +58,8 @@
     <h1>PRINCE &amp; NATHAN<br>vs BAJSMONSTRET</h1>
     <div class="label">VÄLJ HJÄLTE</div>
     <div class="row" id="chars">
-      <button class="char sel" data-c="cap"><canvas width="80" height="100"></canvas>PRINCE</button>
-      <button class="char" data-c="nathan"><canvas width="80" height="100"></canvas>NATHAN</button>
+      <button class="char sel" data-c="cap"><canvas width="100" height="130"></canvas>PRINCE</button>
+      <button class="char" data-c="nathan"><canvas width="100" height="130"></canvas>NATHAN</button>
     </div>
     <div class="label">VÄLJ BANA</div>
     <div class="row" id="levels">
@@ -91,7 +93,7 @@ const CHARS = {
 };
 let heroKey = 'cap', levelNum = 1;
 
-function renderFigure(g, c, run, arm) {
+function renderFigure(g, c, run, arm, detail) {
   run = run||0; arm = arm||0;
   g.strokeStyle = c.pants; g.lineWidth = 9; g.lineCap = 'round';
   g.beginPath(); g.moveTo(-7,-26); g.lineTo(-9+run*0.6,-2); g.stroke();
@@ -101,6 +103,10 @@ function renderFigure(g, c, run, arm) {
   g.beginPath(); g.ellipse(9-run*0.6,-2,8,5,0,0,7); g.fill();
   g.fillStyle = c.shirt;
   g.beginPath(); g.roundRect(-14,-48,28,26,8); g.fill();
+  if (detail) { // mjuk skuggning på tröjan
+    g.fillStyle='rgba(0,0,0,0.12)'; g.beginPath(); g.roundRect(2,-48,12,26,8); g.fill();
+    g.fillStyle='rgba(255,255,255,0.18)'; g.beginPath(); g.roundRect(-14,-48,8,26,8); g.fill();
+  }
   if (c.spider) {
     g.strokeStyle = '#1a1a1a'; g.lineWidth = 1.2;
     g.beginPath(); g.moveTo(0,-48); g.lineTo(0,-22); g.stroke();
@@ -123,8 +129,20 @@ function renderFigure(g, c, run, arm) {
   g.strokeStyle = c.arms; g.lineWidth = 8; g.lineCap = 'round';
   g.beginPath(); g.moveTo(-13,-44); g.lineTo(-20-arm*0.3,-32+arm*0.4); g.stroke();
   g.beginPath(); g.moveTo(13,-44); g.lineTo(20+arm*0.3,-32-arm*0.4); g.stroke();
+  // händer
+  g.fillStyle = c.skin;
+  g.beginPath(); g.arc(-20-arm*0.3,-32+arm*0.4,3.5,0,7); g.fill();
+  g.beginPath(); g.arc(20+arm*0.3,-32-arm*0.4,3.5,0,7); g.fill();
+  // huvud
   g.fillStyle = c.skin;
   g.beginPath(); g.arc(0,-60,15,0,7); g.fill();
+  if (detail) { // ansiktsskuggning för rundare känsla
+    g.fillStyle='rgba(0,0,0,0.1)'; g.beginPath(); g.arc(4,-58,13,-0.3,1.6); g.fill();
+  }
+  // öron
+  g.fillStyle = c.skin;
+  g.beginPath(); g.arc(-14,-58,3.5,0,7); g.fill();
+  g.beginPath(); g.arc(14,-58,3.5,0,7); g.fill();
   if (c.hair === 'blond') {
     g.fillStyle = '#ffe066';
     if (c.cap) {
@@ -134,6 +152,7 @@ function renderFigure(g, c, run, arm) {
       g.beginPath(); g.roundRect(6,-70,18,6,3); g.fill();
       g.fillStyle = '#b8241f';
       g.beginPath(); g.roundRect(-15,-68,30,4,2); g.fill();
+      if(detail){ g.fillStyle='rgba(255,255,255,0.25)'; g.beginPath(); g.arc(-5,-70,6,Math.PI,0); g.fill(); }
     } else {
       [[-13,-70],[-6,-75],[2,-76],[10,-73],[15,-66],[-16,-63],[6,-78],[-2,-79]].forEach(cu=>{ g.beginPath(); g.arc(cu[0],cu[1],6.5,0,7); g.fill(); });
     }
@@ -143,18 +162,34 @@ function renderFigure(g, c, run, arm) {
     g.beginPath(); g.ellipse(0,-68,14,8,0,0,7); g.fill();
     g.beginPath(); g.arc(-14,-60,4,0,7); g.fill();
     g.beginPath(); g.arc(14,-60,4,0,7); g.fill();
+    if(detail){ // små tighta lockar
+      g.fillStyle='#2a1a10'; [[-9,-72],[0,-75],[9,-72],[-13,-66],[13,-66]].forEach(cu=>{g.beginPath();g.arc(cu[0],cu[1],3,0,7);g.fill();}); }
   }
+  // ögon (med liten glans i detail-läge)
   g.fillStyle = '#222';
-  g.beginPath(); g.arc(5,-61,2.2,0,7); g.fill();
-  g.beginPath(); g.arc(12,-61,2.2,0,7); g.fill();
+  g.beginPath(); g.arc(5,-61,2.4,0,7); g.fill();
+  g.beginPath(); g.arc(12,-61,2.4,0,7); g.fill();
+  if(detail){ g.fillStyle='#fff'; g.beginPath(); g.arc(5.8,-61.8,0.9,0,7); g.fill(); g.beginPath(); g.arc(12.8,-61.8,0.9,0,7); g.fill(); }
+  // näsa
+  g.strokeStyle=c.spider?'rgba(0,0,0,0.25)':'rgba(150,90,60,0.5)'; g.lineWidth=1.5;
+  g.beginPath(); g.moveTo(9,-58); g.lineTo(9.5,-55); g.stroke();
+  // mun
   g.strokeStyle = '#c0392b'; g.lineWidth = 2;
   g.beginPath(); g.arc(8,-55,4,0.2,Math.PI-0.2); g.stroke();
+  // rosa kinder i detail
+  if(detail){ g.fillStyle='rgba(255,140,140,0.35)';
+    g.beginPath(); g.arc(2,-54,2.6,0,7); g.fill(); g.beginPath(); g.arc(14,-54,2.6,0,7); g.fill(); }
 }
 function drawPreviews() {
   document.querySelectorAll('.char').forEach(b=>{
     const pc = b.querySelector('canvas'); if (!pc) return;
     try { const g=pc.getContext('2d'); g.clearRect(0,0,pc.width,pc.height);
-      g.save(); g.translate(pc.width/2,pc.height-4); renderFigure(g,CHARS[b.dataset.c],0,0); g.restore();
+      // mjuk skugga under gubben
+      g.save(); g.translate(pc.width/2, pc.height-8);
+      g.fillStyle='rgba(0,0,0,0.12)'; g.beginPath(); g.ellipse(0,2,26,7,0,0,7); g.fill();
+      // större och mer detaljerad figur
+      g.scale(1.28,1.28);
+      renderFigure(g,CHARS[b.dataset.c],0,0,true); g.restore();
     } catch(e){}
   });
 }
@@ -227,13 +262,13 @@ bindBtn(btnL,'l');bindBtn(btnR,'r');bindBtn(btnJ,'j');bindBtn(btnS,'s');
 
 // ---------- värld ----------
 let LEVEL_END=5750;
-let player,cam,collects,poops,enemies,platforms,checkpoints,boss,particles,clouds,farts,frisbees,flowers,shop,lifts,skyItems,skyTimer,flag,projectiles;
+let player,cam,collects,poops,enemies,platforms,checkpoints,boss,particles,clouds,farts,frisbees,flowers,shop,lifts,skyItems,skyTimer,flag,projectiles,slide;
 let score,state,msgTimer,time=0,invuln=0,jumpHeld=false,shootHeld=false,shootCD=0;
 
 function makeWorld() {
   player={x:80,y:GROUND-70,w:44,h:70,vx:0,vy:0,onGround:false,face:1,squash:1};
   cam=0;score=0;invuln=0;
-  particles=[];farts=[];frisbees=[];skyItems=[];skyTimer=3;projectiles=[];
+  particles=[];farts=[];frisbees=[];skyItems=[];skyTimer=3;projectiles=[];slide=null;
   clouds=Array.from({length:14},(_,i)=>({x:i*450+Math.random()*200,y:40+Math.random()*120,s:0.7+Math.random()*0.8}));
 
   if (levelNum===1) {
@@ -259,7 +294,7 @@ function makeWorld() {
     collects=[420,720,1050,1300,1600,1950,2250,2550,2850,3150,3500,3850,4150,4450,4750,5050].map((x,i)=>({x,y:GROUND-120-((x/260|0)%3)*55,got:false,t:Math.random()*6,flavor:'ball'}));
     poops=[600,1000,1450,1800,2150,2500,2900,3300,3700,4100,4500,4900].map(x=>({x,y:GROUND-30,w:44,h:30,sand:true}));
     enemies=[{x:1200,min:1100,max:1400},{x:2350,min:2200,max:2600},{x:3050,min:2950,max:3250},{x:3950,min:3800,max:4200},{x:4700,min:4600,max:4850}]
-      .map(s=>({...s,type:'hippo',y:GROUND-46,w:62,h:46,dir:1,dead:false,deadT:0,fartT:2.5+Math.random()*4}));
+      .map(s=>({...s,type:'hippo',y:GROUND-64,w:88,h:64,dir:1,dead:false,deadT:0,fartT:2.5+Math.random()*4,gape:0}));
     platforms=[{x:780,y:GROUND-70,w:90,h:22},{x:890,y:GROUND-130,w:90,h:22},{x:1000,y:GROUND-190,w:90,h:22},
       {x:1620,y:GROUND-120,w:130,h:22},
       {x:2350,y:GROUND-75,w:90,h:22},{x:2460,y:GROUND-135,w:90,h:22},{x:2570,y:GROUND-195,w:90,h:22},
@@ -267,7 +302,8 @@ function makeWorld() {
     lifts=[{x:1350,baseY:GROUND-30,topY:120,phase:0},{x:3300,baseY:GROUND-30,topY:100,phase:2}];
     flowers=[1050,1850,2750,3600,4350].map(x=>({x,y:GROUND-20,bounce:0}));
     shop={type:'sign',x:1500,w:200};
-    // blåval-rutschkana som hinderbana (en stor sluttande ramp)
+    // blåval-rutschkana som man åker nedför: ramp från (x1,y1) till (x2,y2)
+    slide={x1:3820,y1:GROUND-150,x2:4080,y2:GROUND-8};
     boss={type:'llama',x:5330,y:GROUND-120,w:120,h:120,hp:3,vx:0,vy:0,onGround:true,hurt:0,dir:-1,jumpT:2,dead:false,deadT:0,size:1,spitT:2};
     flag={x:5520,h:300,pulled:0};
   }
@@ -383,6 +419,21 @@ function update(dt){
 
   flowers.forEach(fl=>{ if(fl.bounce>0)fl.bounce-=dt*4; const top=fl.y-18;
     if(p.vy>0&&p.x+p.w-10>fl.x-26&&p.x+10<fl.x+26&&p.y+p.h>=top&&p.y+p.h<=top+26){p.y=top-p.h;p.vy=-23;p.onGround=false;fl.bounce=1;sBoop();emit(fl.x-cam,top,8,['#c77dff','#e0aaff','#fff']);} });
+
+  // valrutschkana – glid snabbt nedför rampen! 🐳
+  if(slide){
+    const cx=p.x+p.w/2;
+    if(cx>slide.x1&&cx<slide.x2){
+      const tt=(cx-slide.x1)/(slide.x2-slide.x1);
+      const rampY=slide.y1+(slide.y2-slide.y1)*tt;
+      if(p.y+p.h>=rampY-6 && p.y+p.h<=rampY+40){
+        p.y=rampY-p.h; p.vy=0; p.onGround=true;
+        p.x+=2.8; // dras nedför kanan
+        if(Math.random()<0.3)emit(cx-cam,rampY,2,['#bfe4fb','#fff','#7ec8ff'],3,3);
+        if(!slide.riding){slide.riding=true;showMsg('IIIIH! Valrutschkana! 🐳🛝',1200);sBoop();}
+      }
+    } else slide.riding=false;
+  }
 
   // butik/skylt: bana 1 = godis (poäng), bana 2 = bara skylt
   if(shop.type==='candy'&&!shop.ate&&p.x+p.w>shop.x&&p.x<shop.x+shop.w){
@@ -503,30 +554,62 @@ function draw(){
   // kullar
   ctx.fillStyle=levelNum===1?'#a8e063':'#8fd14f';
   for(let i=0;i<8;i++){ const hx=(i*900-cam*0.6)%(LEVEL_END); ctx.beginPath(); ctx.arc(hx,GROUND+60,160,Math.PI,0); ctx.fill(); }
+
+  // 🗼 EIFFELTORN i fjärran (parallax-bakgrund)
+  (function(){
+    const ex = (levelNum===1?1600:2400) - cam*0.45; // glider långsamt = långt borta
+    if(ex>-120 && ex<W+120){
+      const baseY=GROUND-4, topY=GROUND-230, midY=GROUND-130;
+      ctx.strokeStyle='rgba(110,90,70,0.55)'; ctx.fillStyle='rgba(125,100,78,0.5)'; ctx.lineWidth=3;
+      // ben
+      ctx.beginPath(); ctx.moveTo(ex-34,baseY); ctx.lineTo(ex-9,topY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex+34,baseY); ctx.lineTo(ex+9,topY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex-22,baseY); ctx.lineTo(ex-6,topY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex+22,baseY); ctx.lineTo(ex+6,topY); ctx.stroke();
+      // tvärbågar
+      ctx.beginPath(); ctx.moveTo(ex-30,GROUND-40); ctx.quadraticCurveTo(ex,GROUND-58,ex+30,GROUND-40); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex-22,midY); ctx.lineTo(ex+22,midY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex-12,GROUND-180); ctx.lineTo(ex+12,GROUND-180); ctx.stroke();
+      // topp + spira
+      ctx.beginPath(); ctx.moveTo(ex-9,topY); ctx.lineTo(ex+9,topY); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(ex,topY); ctx.lineTo(ex,topY-22); ctx.stroke();
+    }
+  })();
   // mark
   ctx.fillStyle=levelNum===1?'#5fc24e':'#e8d59a'; ctx.fillRect(0,GROUND,W,H-GROUND); // bana2 = sandfärgad lekpark
   ctx.fillStyle=levelNum===1?'#8a5a2b':'#d4be7e'; ctx.fillRect(0,GROUND+22,W,H-GROUND);
   ctx.font='22px serif';
   for(let i=0;i<40;i++){ const fx=i*150-cam; if(fx>-30&&fx<W+30)ctx.fillText(levelNum===1?['🌸','🌼','🌷'][i%3]:['🌳','🪁','🌻'][i%3],fx,GROUND+18); }
 
-  // bana 2: blåval-rutschkana som hinderbana
-  if(levelNum===2){
-    const wx=3950-cam;
-    if(wx>-300&&wx<W+200){
-      // stor blå val med rutschkana-svans
+  // bana 2: blåval-rutschkana man åker nedför
+  if(levelNum===2&&slide){
+    const x1=slide.x1-cam, x2=slide.x2-cam;
+    if(x2>-100&&x1<W+200){
+      // valens kropp uppe vid toppen (man klättrar upp via trappan bredvid)
+      const hx=slide.x1-cam, hy=slide.y1;
       ctx.fillStyle='#3a86c8';
-      ctx.beginPath(); ctx.ellipse(wx,GROUND-50,130,70,0,0,7); ctx.fill();
-      ctx.fillStyle='#bfe4fb'; ctx.beginPath(); ctx.ellipse(wx-20,GROUND-30,90,40,0,0,Math.PI); ctx.fill();
-      // huvud/öga
-      ctx.fillStyle='#2d6fa8'; ctx.beginPath(); ctx.arc(wx-110,GROUND-55,38,0,7); ctx.fill();
-      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(wx-120,GROUND-65,7,0,7); ctx.fill();
-      ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(wx-120,GROUND-65,3.5,0,7); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(hx-30,hy-30,72,48,0,0,7); ctx.fill();
+      ctx.fillStyle='#bfe4fb'; ctx.beginPath(); ctx.ellipse(hx-30,hy-14,52,26,0,0,Math.PI); ctx.fill();
+      // öga
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(hx-66,hy-40,9,0,7); ctx.fill();
+      ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(hx-68,hy-40,4,0,7); ctx.fill();
+      // leende
+      ctx.strokeStyle='#1d4e73';ctx.lineWidth=3;ctx.lineCap='round';ctx.beginPath();ctx.arc(hx-58,hy-26,12,0.1,1.1);ctx.stroke();
       // vattenspruta
-      ctx.fillStyle='#bfe4fb'; ctx.beginPath(); ctx.ellipse(wx+10,GROUND-128,9,20,0,0,7); ctx.fill();
-      // rutschkana-ramp (svans)
-      ctx.strokeStyle='#ffd83d'; ctx.lineWidth=10; ctx.lineCap='round';
-      ctx.beginPath(); ctx.moveTo(wx+80,GROUND-100); ctx.quadraticCurveTo(wx+160,GROUND-90,wx+150,GROUND); ctx.stroke();
-      ctx.fillStyle='#5a3a1a'; ctx.font='bold 13px Comic Sans MS'; ctx.textAlign='center'; ctx.fillText('🐳 valrutschkana',wx,GROUND-130);
+      ctx.fillStyle='#bfe4fb'; ctx.beginPath(); ctx.ellipse(hx-30,hy-78,8,22,0,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(hx-38,hy-96,5,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(hx-22,hy-92,4,0,7); ctx.fill();
+      // själva rutschkanan (gul glansig ramp)
+      ctx.strokeStyle='#ffcf3d'; ctx.lineWidth=16; ctx.lineCap='round';
+      ctx.beginPath(); ctx.moveTo(x1,slide.y1); ctx.lineTo(x2,slide.y2); ctx.stroke();
+      ctx.strokeStyle='#fff3b0'; ctx.lineWidth=5;
+      ctx.beginPath(); ctx.moveTo(x1,slide.y1-4); ctx.lineTo(x2,slide.y2-4); ctx.stroke();
+      // kanträcken
+      ctx.strokeStyle='#3a86c8'; ctx.lineWidth=3;
+      ctx.beginPath(); ctx.moveTo(x1,slide.y1+9); ctx.lineTo(x2,slide.y2+9); ctx.stroke();
+      // klättertrappa upp till toppen
+      ctx.fillStyle='#c89b5a';
+      for(let i=0;i<3;i++) ctx.fillRect(x1-50, slide.y1+i*30, 38, 10);
+      ctx.fillStyle='#5a3a1a'; ctx.font='bold 13px Comic Sans MS'; ctx.textAlign='center'; ctx.fillText('🐳 VALRUTSCHKANA',hx-30,hy-100);
     }
   }
 
@@ -608,10 +691,36 @@ function draw(){
     if(s.dead){ if(s.deadT<1){ctx.save();ctx.globalAlpha=1-s.deadT;ctx.font='40px serif';ctx.textAlign='center';ctx.fillText('💨',x+s.w/2,s.y+s.h-s.deadT*60);ctx.restore();} return; }
     ctx.save(); ctx.translate(x+s.w/2,s.y+s.h); ctx.scale(-s.dir,1);
     if(s.type==='skunk'){ ctx.font='46px serif'; ctx.textAlign='center'; ctx.fillText('🦨',0,Math.sin(time*10+s.x)*2); }
-    else { // FLODHÄST som gapar
-      const gape=s.gape>0?1:0; ctx.font='52px serif'; ctx.textAlign='center';
-      ctx.fillText(gape?'🦛':'🦛',0,Math.sin(time*8+s.x)*2);
-      if(gape){ ctx.fillStyle='rgba(111,207,74,0.6)'; ctx.beginPath(); ctx.ellipse(22,-8,10,7,0,0,7); ctx.fill(); }
+    else {
+      // STOR ritad flodhäst som gapar 🦛
+      const bob=Math.sin(time*6+s.x)*2;
+      const open=10 + (s.gape>0?16:8) + Math.sin(time*4)*2; // gapar alltid, extra vid rap
+      ctx.translate(0,bob);
+      // ben
+      ctx.fillStyle='#8a6fc0'; [-26,-8,10,26].forEach(lx=>ctx.fillRect(lx-5,8,12,16));
+      // kropp
+      ctx.fillStyle='#9d7fd4';
+      ctx.beginPath(); ctx.ellipse(-6,-8,40,28,0,0,7); ctx.fill();
+      // huvud (stort)
+      ctx.beginPath(); ctx.ellipse(30,-14,28,24,0,0,7); ctx.fill();
+      // öron
+      ctx.beginPath(); ctx.arc(18,-36,6,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(40,-36,6,0,7); ctx.fill();
+      // ögon
+      ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(24,-30,6,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(40,-30,6,0,7); ctx.fill();
+      ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(25,-30,3,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(41,-30,3,0,7); ctx.fill();
+      // STORT GAP (öppen mun)
+      ctx.fillStyle='#7a4a8a';
+      ctx.beginPath(); ctx.ellipse(46,-4,20,open,0,0,7); ctx.fill();
+      ctx.fillStyle='#ff8ab0'; // tunga
+      ctx.beginPath(); ctx.ellipse(48,2,12,open*0.4,0,0,7); ctx.fill();
+      // tänder
+      ctx.fillStyle='#fff';
+      ctx.fillRect(36,-4-open,5,7); ctx.fillRect(56,-4-open,5,7);
+      ctx.fillRect(38,-2+open,4,6); ctx.fillRect(54,-2+open,4,6);
+      // nosborrar
+      ctx.fillStyle='#6a4f9a'; ctx.beginPath(); ctx.arc(58,-16,2.5,0,7); ctx.fill(); ctx.beginPath(); ctx.arc(62,-13,2.5,0,7); ctx.fill();
+      if(s.gape>0){ ctx.fillStyle='rgba(111,207,74,0.6)'; ctx.beginPath(); ctx.ellipse(72,-4,12,9,0,0,7); ctx.fill(); }
     }
     ctx.restore(); });
 
@@ -693,6 +802,17 @@ startBtn.addEventListener('click',()=>{ overlay.classList.add('hidden');
   makeWorld();respawnX=80;state='play';beep(523,0.15,'square',0.1); if(musicOn)startMusic(); });
 
 state='menu'; makeWorld(); requestAnimationFrame(loop);
+
+// ---------- helskärm / mobil-rotation ----------
+const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
+function fitScreen(){
+  // rotera ENDAST på riktiga touch-mobiler i stående läge – aldrig på dator
+  const portrait = isTouch && window.innerHeight > window.innerWidth;
+  document.body.classList.toggle('portrait', portrait);
+}
+window.addEventListener('resize', fitScreen);
+window.addEventListener('orientationchange', ()=>setTimeout(fitScreen,150));
+fitScreen();
 })();
 </script>
 </body>
