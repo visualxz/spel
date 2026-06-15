@@ -1,7 +1,4 @@
-    <button id="startBtn">▶ STARTA!</button>
-  </div>
-</div>
-<div id="rotate"><div class="ph">📱</div><p>Vrid telefonen i sidled<br>för att spela! <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="sv">
 <head>
 <meta charset="UTF-8">
@@ -9,8 +6,9 @@
 <title>PRINCE & NATHAN vs BAJSMONSTRET</title>
 <style>
   * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  html,body { height:100%; overflow:hidden; background:#7ec8ff; font-family:'Comic Sans MS','Chalkboard SE',sans-serif; touch-action:none; }
-  #wrap { position:relative; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  html,body { height:100%; width:100%; overflow:hidden; background:#000; font-family:'Comic Sans MS','Chalkboard SE',sans-serif; touch-action:none; position:fixed; inset:0; }
+  #wrap { position:fixed; inset:0; width:100%; height:100%; display:flex; align-items:center; justify-content:center; }
+  canvas#game { display:block; width:100%; height:100%; }
   /* uppmaning att vrida telefonen i stående läge */
   #rotate { position:fixed; inset:0; z-index:50; background:linear-gradient(180deg,#7ec8ff,#b6f0ff);
     display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:24px; }
@@ -78,6 +76,7 @@
     <button id="startBtn">▶ STARTA!</button>
   </div>
 </div>
+<div id="rotate"><div class="ph">📱</div><p>Vrid telefonen i sidled<br>för att spela! 🎮</p></div>
 <script>
 (() => {
 if (!CanvasRenderingContext2D.prototype.roundRect) {
@@ -88,7 +87,24 @@ if (!CanvasRenderingContext2D.prototype.roundRect) {
   };
 }
 const cv = document.getElementById('game'), ctx = cv.getContext('2d');
-const W = 900, H = 500, GROUND = 430;
+let W = 900, H = 500;
+const GROUND_FRAC = 0.86; // mark på 86% av höjden
+let GROUND = Math.round(H*GROUND_FRAC);
+
+// gör canvasen lika stor som skärmen så den fyller helt (ingen svart remsa)
+function resizeCanvas(){
+  const vw = window.innerWidth, vh = window.innerHeight;
+  // behåll en spelbar bredd ~900-1100 men matcha skärmens proportioner
+  const ratio = vw/vh;
+  H = 500;
+  W = Math.round(H * ratio);
+  W = Math.max(640, Math.min(1400, W)); // rimliga gränser
+  cv.width = W; cv.height = H;
+  GROUND = Math.round(H*GROUND_FRAC);
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+window.addEventListener('orientationchange', ()=>setTimeout(resizeCanvas,200));
 const overlay = document.getElementById('overlay'), startBtn = document.getElementById('startBtn');
 const hud = document.getElementById('hud'), msgEl = document.getElementById('msg');
 const btnL = document.getElementById('left'), btnR = document.getElementById('right'), btnJ = document.getElementById('jump');
@@ -811,15 +827,16 @@ startBtn.addEventListener('click',()=>{ overlay.classList.add('hidden');
 
 state='menu'; makeWorld(); requestAnimationFrame(loop);
 
-// ---------- helskärm / mobil-rotation ----------
+// ---------- mobil: vrid-uppmaning + omräkning ----------
 const isTouch = ('ontouchstart' in window) || navigator.maxTouchPoints > 0;
 function fitScreen(){
-  // rotera ENDAST på riktiga touch-mobiler i stående läge – aldrig på dator
   const portrait = isTouch && window.innerHeight > window.innerWidth;
   document.body.classList.toggle('portrait', portrait);
+  resizeCanvas();
+  if (state==='menu') makeWorld();
 }
 window.addEventListener('resize', fitScreen);
-window.addEventListener('orientationchange', ()=>setTimeout(fitScreen,150));
+window.addEventListener('orientationchange', ()=>setTimeout(fitScreen,200));
 fitScreen();
 })();
 </script>
